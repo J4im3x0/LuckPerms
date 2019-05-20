@@ -89,7 +89,7 @@ public class ParentRemove extends SharedSubCommand {
             }
         }
 
-        DataMutateResult result = holder.unsetPermission(NodeFactory.buildGroupNode(groupName).withExtraContext(context).build());
+        DataMutateResult result = holder.unsetPermission(NodeFactory.buildGroupNode(groupName).withContext(context).build());
         if (result.asBoolean()) {
             Message.UNSET_INHERIT_SUCCESS.send(sender, holder.getFormattedDisplayName(), groupName, MessageUtils.contextSetToString(plugin.getLocaleManager(), context));
 

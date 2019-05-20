@@ -26,7 +26,7 @@
 package me.lucko.luckperms.common.cacheddata;
 
 import me.lucko.luckperms.api.caching.CachedDataContainer;
-import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.model.HolderType;
 
 /**
@@ -50,15 +50,15 @@ public class CacheMetadata {
     private final String objectName;
 
     /**
-     * The context the permission calculator works with
+     * The query options
      */
-    private final ContextSet context;
+    private final QueryOptions queryOptions;
 
-    public CacheMetadata(AbstractCachedData parentContainer, HolderType holderType, String objectName, ContextSet context) {
+    public CacheMetadata(AbstractCachedData parentContainer, HolderType holderType, String objectName, QueryOptions queryOptions) {
         this.parentContainer = parentContainer;
         this.holderType = holderType;
         this.objectName = objectName;
-        this.context = context;
+        this.queryOptions = queryOptions;
     }
 
     public AbstractCachedData getParentContainer() {
@@ -73,7 +73,7 @@ public class CacheMetadata {
         return this.objectName;
     }
 
-    public ContextSet getContext() {
-        return this.context;
+    public QueryOptions getQueryOptions() {
+        return this.queryOptions;
     }
 }

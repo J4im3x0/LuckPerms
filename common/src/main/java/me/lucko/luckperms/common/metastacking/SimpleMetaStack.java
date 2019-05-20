@@ -26,8 +26,8 @@
 package me.lucko.luckperms.common.metastacking;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.LocalizedNode;
 import me.lucko.luckperms.api.metastacking.MetaStackDefinition;
+import me.lucko.luckperms.api.node.types.ChatMetaNode;
 import me.lucko.luckperms.common.util.ImmutableCollectors;
 
 import java.util.LinkedList;
@@ -80,7 +80,7 @@ public final class SimpleMetaStack implements MetaStack {
     }
 
     @Override
-    public void accumulateToAll(LocalizedNode node) {
+    public void accumulateToAll(ChatMetaNode<?, ?> node) {
         this.entries.forEach(e -> e.accumulateNode(node));
     }
 

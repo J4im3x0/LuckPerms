@@ -29,9 +29,10 @@ import com.google.common.collect.ImmutableList;
 
 import me.lucko.luckperms.api.DataMutateResult;
 import me.lucko.luckperms.api.DemotionResult;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.PromotionResult;
 import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
 import me.lucko.luckperms.common.api.implementation.ApiTrack;
 import me.lucko.luckperms.common.node.factory.NodeFactory;
 import me.lucko.luckperms.common.plugin.LuckPermsPlugin;
@@ -274,8 +275,9 @@ public final class Track implements Identifiable<String> {
         }
 
         // find all groups that are inherited by the user in the exact contexts given and applicable to this track
-        List<Node> nodes = user.enduringData().immutable().get(context.makeImmutable()).stream()
-                .filter(Node::isGroupNode)
+        List<InheritanceNode> nodes = user.enduringData().immutable().get(context.makeImmutable()).stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
                 .filter(Node::getValue)
                 .filter(node -> containsGroup(node.getGroupName()))
                 .distinct()
@@ -297,7 +299,7 @@ public final class Track implements Identifiable<String> {
                 return PromotionResults.undefinedFailure();
             }
 
-            user.setPermission(NodeFactory.buildGroupNode(nextGroup.getId()).withExtraContext(context).build());
+            user.setPermission(NodeFactory.buildGroupNode(nextGroup.getId()).withContext(context).build());
             this.plugin.getEventFactory().handleUserPromote(user, this, null, first, sender);
             return PromotionResults.addedToFirst(first);
         }
@@ -306,7 +308,7 @@ public final class Track implements Identifiable<String> {
             return PromotionResults.ambiguousCall();
         }
 
-        Node oldNode = nodes.get(0);
+        InheritanceNode oldNode = nodes.get(0);
         String old = oldNode.getGroupName();
         String next = getNext(old);
 
@@ -324,7 +326,7 @@ public final class Track implements Identifiable<String> {
         }
 
         user.unsetPermission(oldNode);
-        user.setPermission(NodeFactory.buildGroupNode(nextGroup.getName()).withExtraContext(context).build());
+        user.setPermission(NodeFactory.buildGroupNode(nextGroup.getName()).withContext(context).build());
 
         if (context.isEmpty() && user.getPrimaryGroup().getStoredValue().orElse(NodeFactory.DEFAULT_GROUP_NAME).equalsIgnoreCase(old)) {
             user.getPrimaryGroup().setStoredValue(nextGroup.getName());
@@ -340,8 +342,9 @@ public final class Track implements Identifiable<String> {
         }
 
         // find all groups that are inherited by the user in the exact contexts given and applicable to this track
-        List<Node> nodes = user.enduringData().immutable().get(context.makeImmutable()).stream()
-                .filter(Node::isGroupNode)
+        List<InheritanceNode> nodes = user.enduringData().immutable().get(context.makeImmutable()).stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
                 .filter(Node::getValue)
                 .filter(node -> containsGroup(node.getGroupName()))
                 .distinct()
@@ -355,7 +358,7 @@ public final class Track implements Identifiable<String> {
             return DemotionResults.ambiguousCall();
         }
 
-        Node oldNode = nodes.get(0);
+        InheritanceNode oldNode = nodes.get(0);
         String old = oldNode.getGroupName();
         String previous = getPrevious(old);
 
@@ -379,7 +382,7 @@ public final class Track implements Identifiable<String> {
         }
 
         user.unsetPermission(oldNode);
-        user.setPermission(NodeFactory.buildGroupNode(previousGroup.getName()).withExtraContext(context).build());
+        user.setPermission(NodeFactory.buildGroupNode(previousGroup.getName()).withContext(context).build());
 
         if (context.isEmpty() && user.getPrimaryGroup().getStoredValue().orElse(NodeFactory.DEFAULT_GROUP_NAME).equalsIgnoreCase(old)) {
             user.getPrimaryGroup().setStoredValue(previousGroup.getName());

@@ -26,11 +26,11 @@
 package me.lucko.luckperms.api.event.node;
 
 import me.lucko.luckperms.api.Group;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.PermissionHolder;
 import me.lucko.luckperms.api.User;
 import me.lucko.luckperms.api.event.LuckPermsEvent;
 import me.lucko.luckperms.api.event.Param;
+import me.lucko.luckperms.api.node.Node;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 

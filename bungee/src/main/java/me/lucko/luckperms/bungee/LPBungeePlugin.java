@@ -25,8 +25,8 @@
 
 package me.lucko.luckperms.bungee;
 
-import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.LuckPermsApi;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.bungee.calculator.BungeeCalculatorFactory;
 import me.lucko.luckperms.bungee.context.BackendServerCalculator;
 import me.lucko.luckperms.bungee.context.BungeeContextManager;
@@ -188,8 +188,8 @@ public class LPBungeePlugin extends AbstractLuckPermsPlugin {
     }
 
     @Override
-    public Optional<Contexts> getContextForUser(User user) {
-        return this.bootstrap.getPlayer(user.getUuid()).map(player -> this.contextManager.getApplicableContexts(player));
+    public Optional<QueryOptions> getQueryOptionsForUser(User user) {
+        return this.bootstrap.getPlayer(user.getUuid()).map(player -> this.contextManager.getQueryOptions(player));
     }
 
     @Override

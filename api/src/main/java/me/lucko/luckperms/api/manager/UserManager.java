@@ -25,9 +25,8 @@
 
 package me.lucko.luckperms.api.manager;
 
-import me.lucko.luckperms.api.HeldPermission;
+import me.lucko.luckperms.api.HeldNode;
 import me.lucko.luckperms.api.PlayerSaveResult;
-import me.lucko.luckperms.api.Storage;
 import me.lucko.luckperms.api.User;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -64,13 +63,6 @@ public interface UserManager {
     /**
      * Loads a user from the plugin's storage provider into memory.
      *
-     * <p>This method is effectively the same as
-     * {@link Storage#loadUser(UUID, String)}, however, the Future returns the
-     * resultant user instance instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a user cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param uuid     the uuid of the user
      * @param username the username, if known
      * @return the resultant user
@@ -81,13 +73,6 @@ public interface UserManager {
 
     /**
      * Loads a user from the plugin's storage provider into memory.
-     *
-     * <p>This method is effectively the same as {@link Storage#loadUser(UUID)},
-     * however, the Future returns the resultant user instance instead of a
-     * boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a user cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
      *
      * @param uuid the uuid of the user
      * @return the resultant user
@@ -127,12 +112,6 @@ public interface UserManager {
      *
      * <p>You should call this after you make any changes to a user.</p>
      *
-     * <p>This method is effectively the same as {@link Storage#saveUser(User)},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a user cannot be saved,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param user the user to save
      * @return a future to encapsulate the operation.
      * @throws NullPointerException  if user is null
@@ -171,7 +150,7 @@ public interface UserManager {
      * @throws NullPointerException if the permission is null
      * @since 4.2
      */
-    @NonNull CompletableFuture<List<HeldPermission<UUID>>> getWithPermission(@NonNull String permission);
+    @NonNull CompletableFuture<List<HeldNode<UUID>>> getWithPermission(@NonNull String permission);
 
     /**
      * Gets a loaded user.

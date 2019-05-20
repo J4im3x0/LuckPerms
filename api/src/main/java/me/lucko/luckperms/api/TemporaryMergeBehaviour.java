@@ -25,15 +25,17 @@
 
 package me.lucko.luckperms.api;
 
+import me.lucko.luckperms.api.node.Node;
+
 /**
  * Controls how the implementation should behave when new temporary nodes are set
  * that would otherwise conflict with existing entries.
  *
- * <p>The default behaviour of {@link PermissionHolder#setPermission(Node)} is
+ * <p>The default behaviour of {@link PermissionHolder#addNode(Node)} is
  * to return a result of {@link DataMutateResult#ALREADY_HAS} when an equivalent
  * node is found. This can be replicated using {@link #FAIL_WITH_ALREADY_HAS}.</p>
  *
- * <p>However, the {@link PermissionHolder#setPermission(Node, TemporaryMergeBehaviour)}
+ * <p>However, the {@link PermissionHolder#addNode(Node, TemporaryMergeBehaviour)}
  * method allows this behaviour to be customized for temporary permissions.</p>
  *
  * @since 4.3

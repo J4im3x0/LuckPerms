@@ -184,8 +184,8 @@ public class User extends PermissionHolder implements Identifiable<UserIdentifie
      * Clear all of the users permission nodes
      */
     @Override
-    public boolean clearNodes() {
-        boolean ret = super.clearNodes();
+    public boolean clearEnduringNodes() {
+        boolean ret = super.clearEnduringNodes();
         if (!ret) {
             return false;
         }

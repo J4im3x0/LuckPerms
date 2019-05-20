@@ -26,8 +26,8 @@
 package me.lucko.luckperms.api.metastacking;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.LocalizedNode;
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.ChatMetaNode;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -53,6 +53,6 @@ public interface MetaStackElement {
      * @param current the current value being used. If this returns true, the current value will be replaced by this entry
      * @return true if the node should be accumulated into this element, replacing the current value
      */
-    boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current);
+    boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current);
 
 }

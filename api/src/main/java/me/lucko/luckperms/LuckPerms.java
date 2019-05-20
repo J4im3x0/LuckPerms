@@ -29,8 +29,6 @@ import me.lucko.luckperms.api.LuckPermsApi;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import java.util.Optional;
-
 /**
  * Provides static access to the {@link LuckPermsApi}.
  *
@@ -54,19 +52,6 @@ public final class LuckPerms {
             throw new IllegalStateException("API is not loaded.");
         }
         return instance;
-    }
-
-    /**
-     * Gets an instance of {@link LuckPermsApi}, if it is loaded.
-     *
-     * <p>Unlike {@link LuckPerms#getApi}, this method will not throw an
-     * {@link IllegalStateException} if an instance is not yet loaded, rather return
-     * an empty {@link Optional}.
-     *
-     * @return an optional api instance
-     */
-    public static @NonNull Optional<LuckPermsApi> getApiSafe() {
-        return Optional.ofNullable(instance);
     }
 
     /**

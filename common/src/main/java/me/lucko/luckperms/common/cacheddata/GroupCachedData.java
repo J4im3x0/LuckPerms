@@ -25,8 +25,8 @@
 
 package me.lucko.luckperms.common.cacheddata;
 
-import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.caching.GroupData;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.model.Group;
 import me.lucko.luckperms.common.model.HolderType;
 
@@ -40,7 +40,7 @@ public class GroupCachedData extends HolderCachedData<Group> implements GroupDat
     }
 
     @Override
-    protected CacheMetadata getMetadataForContexts(Contexts contexts) {
-        return new CacheMetadata(this, HolderType.GROUP, this.holder.getPlainDisplayName(), contexts.getContexts());
+    protected CacheMetadata getMetadataForQueryOptions(QueryOptions queryOptions) {
+        return new CacheMetadata(this, HolderType.GROUP, this.holder.getPlainDisplayName(), queryOptions);
     }
 }

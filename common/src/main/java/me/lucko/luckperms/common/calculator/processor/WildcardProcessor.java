@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableMap;
 
 import me.lucko.luckperms.api.Tristate;
 import me.lucko.luckperms.common.calculator.result.TristateResult;
-import me.lucko.luckperms.common.node.model.ImmutableNode;
+import me.lucko.luckperms.common.node.AbstractNode;
 
 import java.util.Collections;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class WildcardProcessor extends AbstractPermissionProcessor implements Pe
         String node = permission;
 
         while (true) {
-            int endIndex = node.lastIndexOf(ImmutableNode.NODE_SEPARATOR);
+            int endIndex = node.lastIndexOf(AbstractNode.NODE_SEPARATOR);
             if (endIndex == -1) {
                 break;
             }

@@ -25,8 +25,8 @@
 
 package me.lucko.luckperms.common.cacheddata;
 
-import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.caching.UserData;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.model.HolderType;
 import me.lucko.luckperms.common.model.User;
 
@@ -40,7 +40,7 @@ public class UserCachedData extends HolderCachedData<User> implements UserData {
     }
 
     @Override
-    protected CacheMetadata getMetadataForContexts(Contexts contexts) {
-        return new CacheMetadata(this, HolderType.USER, this.holder.getPlainDisplayName(), contexts.getContexts());
+    protected CacheMetadata getMetadataForQueryOptions(QueryOptions queryOptions) {
+        return new CacheMetadata(this, HolderType.USER, this.holder.getPlainDisplayName(), queryOptions);
     }
 }

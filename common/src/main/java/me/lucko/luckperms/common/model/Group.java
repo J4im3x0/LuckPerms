@@ -25,9 +25,9 @@
 
 package me.lucko.luckperms.common.model;
 
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.context.ContextSet;
-import me.lucko.luckperms.api.nodetype.types.DisplayNameType;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.DisplayNameNode;
 import me.lucko.luckperms.common.api.implementation.ApiGroup;
 import me.lucko.luckperms.common.cache.Cache;
 import me.lucko.luckperms.common.cacheddata.GroupCachedData;
@@ -116,9 +116,8 @@ public class Group extends PermissionHolder implements Identifiable<String> {
      */
     public Optional<String> getDisplayName(ContextSet contextSet) {
         for (Node n : getData(NodeMapType.ENDURING).immutable().get(contextSet.makeImmutable())) {
-            Optional<DisplayNameType> displayName = n.getTypeData(DisplayNameType.KEY);
-            if (displayName.isPresent()) {
-                return Optional.of(displayName.get().getDisplayName());
+            if (n instanceof DisplayNameNode) {
+                return Optional.of(((DisplayNameNode) n).getDisplayName());
             }
         }
         return Optional.empty();

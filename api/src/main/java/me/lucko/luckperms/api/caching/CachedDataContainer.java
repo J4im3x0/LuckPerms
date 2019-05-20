@@ -25,22 +25,22 @@
 
 package me.lucko.luckperms.api.caching;
 
-import me.lucko.luckperms.api.Contexts;
+import me.lucko.luckperms.api.query.QueryOptions;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * Holds cached lookup data in a specific set of contexts.
+ * Holds cached lookup data for a given set of query options.
  *
  * @since 4.1
  */
 public interface CachedDataContainer {
 
     /**
-     * Gets the contexts this container is holding data for.
+     * Gets the query options this container is holding data for.
      *
-     * @return the contexts this container is caching
+     * @return the query options this container is caching
      */
-    @NonNull Contexts getContexts();
+    @NonNull QueryOptions getQueryOptions();
 
 }

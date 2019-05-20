@@ -25,7 +25,8 @@
 
 package me.lucko.luckperms.common.commands.group;
 
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
 import me.lucko.luckperms.common.command.CommandResult;
 import me.lucko.luckperms.common.command.abstraction.SubCommand;
 import me.lucko.luckperms.common.command.access.ArgumentPermissions;
@@ -62,28 +63,30 @@ public class GroupInfo extends SubCommand<Group> {
                 group.getWeight().isPresent() ? group.getWeight().getAsInt() : "None"
         );
 
-        Set<Node> parents = group.enduringData().asSet().stream()
-                .filter(Node::isGroupNode)
-                .filter(Node::isPermanent)
+        Set<InheritanceNode> parents = group.enduringData().asSet().stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
+                .filter(n -> !n.hasExpiry())
                 .collect(Collectors.toSet());
 
-        Set<Node> tempParents = group.enduringData().asSet().stream()
-                .filter(Node::isGroupNode)
-                .filter(Node::isTemporary)
+        Set<InheritanceNode> tempParents = group.enduringData().asSet().stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
+                .filter(Node::hasExpiry)
                 .collect(Collectors.toSet());
 
         if (!parents.isEmpty()) {
             Message.INFO_PARENT_HEADER.send(sender);
-            for (Node node : parents) {
+            for (InheritanceNode node : parents) {
                 Message.INFO_PARENT_ENTRY.send(sender, node.getGroupName(), MessageUtils.getAppendableNodeContextString(plugin.getLocaleManager(), node));
             }
         }
 
         if (!tempParents.isEmpty()) {
             Message.INFO_TEMP_PARENT_HEADER.send(sender);
-            for (Node node : tempParents) {
+            for (InheritanceNode node : tempParents) {
                 Message.INFO_PARENT_ENTRY.send(sender, node.getGroupName(), MessageUtils.getAppendableNodeContextString(plugin.getLocaleManager(), node));
-                Message.INFO_PARENT_ENTRY_EXPIRY.send(sender, DurationFormatter.LONG.formatDateDiff(node.getExpiryUnixTime()));
+                Message.INFO_PARENT_ENTRY_EXPIRY.send(sender, DurationFormatter.LONG.formatDateDiff(node.getExpiry().getEpochSecond()));
             }
         }
         return CommandResult.SUCCESS;

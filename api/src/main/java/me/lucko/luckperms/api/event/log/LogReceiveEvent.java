@@ -25,7 +25,7 @@
 
 package me.lucko.luckperms.api.event.log;
 
-import me.lucko.luckperms.api.LogEntry;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.event.LuckPermsEvent;
 import me.lucko.luckperms.api.event.Param;
 
@@ -52,6 +52,7 @@ public interface LogReceiveEvent extends LuckPermsEvent {
      *
      * @return the log entry being received
      */
-    @NonNull @Param(1) LogEntry getEntry();
+    @NonNull @Param(1)
+    Action getEntry();
 
 }

@@ -25,7 +25,7 @@
 
 package me.lucko.luckperms.common.api.implementation;
 
-import me.lucko.luckperms.api.HeldPermission;
+import me.lucko.luckperms.api.HeldNode;
 import me.lucko.luckperms.api.PlayerSaveResult;
 import me.lucko.luckperms.common.api.ApiUtils;
 import me.lucko.luckperms.common.bulkupdate.comparison.Constraint;
@@ -102,7 +102,7 @@ public class ApiUserManager extends ApiAbstractManager<User, me.lucko.luckperms.
     }
 
     @Override
-    public @NonNull CompletableFuture<List<HeldPermission<UUID>>> getWithPermission(@NonNull String permission) {
+    public @NonNull CompletableFuture<List<HeldNode<UUID>>> getWithPermission(@NonNull String permission) {
         Objects.requireNonNull(permission, "permission");
         return this.plugin.getStorage().getUsersWithPermission(Constraint.of(StandardComparison.EQUAL, permission));
     }

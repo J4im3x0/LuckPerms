@@ -25,7 +25,6 @@
 
 package me.lucko.luckperms.api.manager;
 
-import me.lucko.luckperms.api.Storage;
 import me.lucko.luckperms.api.Track;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -60,13 +59,6 @@ public interface TrackManager {
      *
      * <p>If a track by the same name already exists, it will be loaded.</p>
      *
-     * <p>This method is effectively the same as
-     * {@link Storage#createAndLoadTrack(String)}, however, the Future returns
-     * the resultant track instance instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a track cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param name the name of the track
      * @return the resultant track
      * @throws NullPointerException if the name is null
@@ -80,13 +72,6 @@ public interface TrackManager {
      * <p>Returns an {@link Optional#empty() empty optional} if the track does
      * not exist.</p>
      *
-     * <p>This method is effectively the same as
-     * {@link Storage#loadTrack(String)}, however, the Future returns
-     * the resultant track instance instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a track cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param name the name of the track
      * @return the resultant track
      * @throws NullPointerException if the name is null
@@ -99,12 +84,6 @@ public interface TrackManager {
      *
      * <p>You should call this after you make any changes to a track.</p>
      *
-     * <p>This method is effectively the same as {@link Storage#saveTrack(Track)},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a track cannot be saved,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param track the track to save
      * @return a future to encapsulate the operation.
      * @throws NullPointerException  if track is null
@@ -116,12 +95,6 @@ public interface TrackManager {
     /**
      * Permanently deletes a track from the plugin's storage provider.
      *
-     * <p>This method is effectively the same as {@link Storage#deleteTrack(Track)},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a track cannot be deleted,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param track the track to delete
      * @return a future to encapsulate the operation.
      * @throws NullPointerException  if track is null
@@ -132,12 +105,6 @@ public interface TrackManager {
 
     /**
      * Loads all tracks into memory.
-     *
-     * <p>This method is effectively the same as {@link Storage#loadAllTracks()},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a track cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
      *
      * @return a future to encapsulate the operation.
      * @since 4.1

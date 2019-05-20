@@ -25,6 +25,8 @@
 
 package me.lucko.luckperms.api;
 
+import me.lucko.luckperms.api.node.Node;
+
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
@@ -32,8 +34,6 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  *
  * <p>Generally, individual instances of this interface should fulfil the same
  * requirements as the {@link Object#equals(Object)} contract.</p>
- *
- * <p>Some standard implementations are provided by {@link StandardNodeEquality}.</p>
  *
  * @since 4.1
  */
@@ -51,5 +51,60 @@ public interface NodeEqualityPredicate {
      * @return true if equal
      */
     boolean areEqual(@NonNull Node o1, @NonNull Node o2);
+
+
+    /*
+     * Some 'default' implementations of NodeEqualityPredicate are provided below.
+     *
+     * These are implemented in the common code, by a special case in the
+     * implementation of Node#equals. As noted above, this generally be avoided.
+     */
+
+    /**
+     * Represents an exact match.
+     *
+     * <p>All attributes of the nodes must match for them to be considered
+     * equal.</p>
+     */
+    NodeEqualityPredicate EXACT = new NodeEqualityPredicate() {
+        @Override public boolean areEqual(@NonNull Node o1, @NonNull Node o2) { return o1.equals(o2, this); }
+    };
+
+    /**
+     * All attributes must match, except for
+     * {@link Node#getValue() value}, which is ignored.
+     */
+    NodeEqualityPredicate IGNORE_VALUE = new NodeEqualityPredicate() {
+        @Override public boolean areEqual(@NonNull Node o1, @NonNull Node o2) { return o1.equals(o2, this); }
+    };
+
+    /**
+     * All attributes must match, except for the
+     * {@link Node#getExpiry() expiry time}, which is ignored.
+     *
+     * <p>Note that with this setting, whether a node is temporary or not is
+     * still considered.</p>
+     */
+    NodeEqualityPredicate IGNORE_EXPIRY_TIME = new NodeEqualityPredicate() {
+        @Override public boolean areEqual(@NonNull Node o1, @NonNull Node o2) { return o1.equals(o2, this); }
+    };
+
+    /**
+     * All attributes must match, except for
+     * {@link Node#getValue() value} and the
+     * {@link Node#getExpiry() expiry time}, which are ignored.
+     */
+    NodeEqualityPredicate IGNORE_EXPIRY_TIME_AND_VALUE = new NodeEqualityPredicate() {
+        @Override public boolean areEqual(@NonNull Node o1, @NonNull Node o2) { return o1.equals(o2, this); }
+    };
+
+    /**
+     * All attributes must match, except for
+     * {@link Node#getValue() value} and the if the node is
+     * {@link Node#hasExpiry() temporary}, which are ignored.
+     */
+    NodeEqualityPredicate IGNORE_VALUE_OR_IF_TEMPORARY = new NodeEqualityPredicate() {
+        @Override public boolean areEqual(@NonNull Node o1, @NonNull Node o2) { return o1.equals(o2, this); }
+    };
 
 }

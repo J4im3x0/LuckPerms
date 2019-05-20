@@ -27,7 +27,7 @@ package me.lucko.luckperms.common.commands.generic.meta;
 
 import me.lucko.luckperms.api.ChatMetaType;
 import me.lucko.luckperms.api.DataMutateResult;
-import me.lucko.luckperms.api.context.MutableContextSet;
+import me.lucko.luckperms.api.context.ImmutableContextSet;
 import me.lucko.luckperms.common.actionlog.ExtendedLogEntry;
 import me.lucko.luckperms.common.command.CommandResult;
 import me.lucko.luckperms.common.command.abstraction.CommandException;
@@ -75,7 +75,7 @@ public class MetaRemoveTempChatMeta extends SharedSubCommand {
 
         int priority = ArgumentParser.parsePriority(0, args);
         String meta = ArgumentParser.parseStringOrElse(1, args, "null");
-        MutableContextSet context = ArgumentParser.parseContext(2, args, plugin);
+        ImmutableContextSet context = ArgumentParser.parseContext(2, args, plugin).makeImmutable();
 
         if (ArgumentPermissions.checkContext(plugin, sender, permission, context) ||
                 ArgumentPermissions.checkGroup(plugin, sender, holder, context)) {
@@ -85,11 +85,11 @@ public class MetaRemoveTempChatMeta extends SharedSubCommand {
 
         // Handle bulk removal
         if (meta.equalsIgnoreCase("null") || meta.equals("*")) {
-            holder.removeIf(n ->
+            holder.removeIfEnduring(n ->
                     this.type.matches(n) &&
                             this.type.getEntry(n).getKey() == priority &&
-                    !n.isPermanent() &&
-                    n.getFullContexts().makeImmutable().equals(context.makeImmutable())
+                    n.hasExpiry() &&
+                    n.getContexts().equals(context)
             );
             Message.BULK_REMOVE_TEMP_CHATMETA_SUCCESS.send(sender, holder.getFormattedDisplayName(), this.type.name().toLowerCase(), priority, MessageUtils.contextSetToString(plugin.getLocaleManager(), context));
 
@@ -101,7 +101,7 @@ public class MetaRemoveTempChatMeta extends SharedSubCommand {
             return CommandResult.SUCCESS;
         }
 
-        DataMutateResult result = holder.unsetPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).setExpiry(10L).withExtraContext(context).build());
+        DataMutateResult result = holder.unsetPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).expiry(10L).withContext(context).build());
 
         if (result.asBoolean()) {
             TextComponent.Builder builder = Message.REMOVE_TEMP_CHATMETA_SUCCESS.asComponent(plugin.getLocaleManager(), holder.getFormattedDisplayName(), this.type.name().toLowerCase(), meta, priority, MessageUtils.contextSetToString(plugin.getLocaleManager(), context)).toBuilder();

@@ -25,11 +25,10 @@
 
 package me.lucko.luckperms.common.api;
 
-import me.lucko.luckperms.api.ActionLogger;
 import me.lucko.luckperms.api.LPConfiguration;
 import me.lucko.luckperms.api.LuckPermsApi;
 import me.lucko.luckperms.api.MessagingService;
-import me.lucko.luckperms.api.NodeFactory;
+import me.lucko.luckperms.api.actionlog.ActionLogger;
 import me.lucko.luckperms.api.context.ContextManager;
 import me.lucko.luckperms.api.event.EventBus;
 import me.lucko.luckperms.api.manager.CachedDataManager;
@@ -38,6 +37,7 @@ import me.lucko.luckperms.api.manager.TrackManager;
 import me.lucko.luckperms.api.manager.UserManager;
 import me.lucko.luckperms.api.messenger.MessengerProvider;
 import me.lucko.luckperms.api.metastacking.MetaStackFactory;
+import me.lucko.luckperms.api.node.NodeBuilderRegistry;
 import me.lucko.luckperms.api.platform.PlatformInfo;
 import me.lucko.luckperms.common.api.implementation.ApiActionLogger;
 import me.lucko.luckperms.common.api.implementation.ApiCachedDataManager;
@@ -45,7 +45,7 @@ import me.lucko.luckperms.common.api.implementation.ApiContextManager;
 import me.lucko.luckperms.common.api.implementation.ApiGroupManager;
 import me.lucko.luckperms.common.api.implementation.ApiMessagingService;
 import me.lucko.luckperms.common.api.implementation.ApiMetaStackFactory;
-import me.lucko.luckperms.common.api.implementation.ApiNodeFactory;
+import me.lucko.luckperms.common.api.implementation.ApiNodeBuilderRegistry;
 import me.lucko.luckperms.common.api.implementation.ApiPlatformInfo;
 import me.lucko.luckperms.common.api.implementation.ApiTrackManager;
 import me.lucko.luckperms.common.api.implementation.ApiUserManager;
@@ -156,8 +156,8 @@ public class LuckPermsApiProvider implements LuckPermsApi {
     }
 
     @Override
-    public @NonNull NodeFactory getNodeFactory() {
-        return ApiNodeFactory.INSTANCE;
+    public @NonNull NodeBuilderRegistry getNodeBuilderRegistry() {
+        return ApiNodeBuilderRegistry.INSTANCE;
     }
 
     @Override

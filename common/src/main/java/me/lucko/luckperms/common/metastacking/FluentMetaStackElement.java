@@ -29,8 +29,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.LocalizedNode;
 import me.lucko.luckperms.api.metastacking.MetaStackElement;
+import me.lucko.luckperms.api.node.types.ChatMetaNode;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -54,7 +54,7 @@ public final class FluentMetaStackElement implements MetaStackElement {
     }
 
     @Override
-    public boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
+    public boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
         for (MetaStackElement element : this.subElements) {
             if (!element.shouldAccumulate(node, type, current)) {
                 return false;

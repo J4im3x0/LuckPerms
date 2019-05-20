@@ -28,9 +28,8 @@ package me.lucko.luckperms.common.event;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import me.lucko.luckperms.api.LogEntry;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.PlayerSaveResult;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.caching.GroupData;
 import me.lucko.luckperms.api.caching.UserData;
 import me.lucko.luckperms.api.event.Cancellable;
@@ -71,6 +70,7 @@ import me.lucko.luckperms.api.event.user.UserFirstLoginEvent;
 import me.lucko.luckperms.api.event.user.UserLoadEvent;
 import me.lucko.luckperms.api.event.user.track.UserDemoteEvent;
 import me.lucko.luckperms.api.event.user.track.UserPromoteEvent;
+import me.lucko.luckperms.api.node.Node;
 import me.lucko.luckperms.common.api.implementation.ApiPermissionHolder;
 import me.lucko.luckperms.common.api.implementation.ApiUser;
 import me.lucko.luckperms.common.event.gen.GeneratedEventSpec;
@@ -151,7 +151,7 @@ public final class EventFactory {
         post(GroupLoadEvent.class, () -> generate(GroupLoadEvent.class, group.getApiDelegate()));
     }
 
-    public boolean handleLogBroadcast(boolean initialState, LogEntry entry, LogBroadcastEvent.Origin origin) {
+    public boolean handleLogBroadcast(boolean initialState, Action entry, LogBroadcastEvent.Origin origin) {
         if (!shouldPost(LogBroadcastEvent.class)) {
             return initialState;
         }
@@ -161,7 +161,7 @@ public final class EventFactory {
         return cancel.get();
     }
 
-    public boolean handleLogPublish(boolean initialState, LogEntry entry) {
+    public boolean handleLogPublish(boolean initialState, Action entry) {
         if (!shouldPost(LogPublishEvent.class)) {
             return initialState;
         }
@@ -171,7 +171,7 @@ public final class EventFactory {
         return cancel.get();
     }
 
-    public boolean handleLogNetworkPublish(boolean initialState, UUID id, LogEntry entry) {
+    public boolean handleLogNetworkPublish(boolean initialState, UUID id, Action entry) {
         if (!shouldPost(LogNetworkPublishEvent.class)) {
             return initialState;
         }
@@ -181,7 +181,7 @@ public final class EventFactory {
         return cancel.get();
     }
 
-    public boolean handleLogNotify(boolean initialState, LogEntry entry, LogNotifyEvent.Origin origin, Sender sender) {
+    public boolean handleLogNotify(boolean initialState, Action entry, LogNotifyEvent.Origin origin, Sender sender) {
         if (!shouldPost(LogNotifyEvent.class)) {
             return initialState;
         }
@@ -191,7 +191,7 @@ public final class EventFactory {
         return cancel.get();
     }
 
-    public void handleLogReceive(UUID id, LogEntry entry) {
+    public void handleLogReceive(UUID id, Action entry) {
         post(LogReceiveEvent.class, () -> generate(LogReceiveEvent.class, id, entry));
     }
 

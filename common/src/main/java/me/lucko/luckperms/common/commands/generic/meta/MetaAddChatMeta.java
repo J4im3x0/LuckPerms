@@ -83,7 +83,7 @@ public class MetaAddChatMeta extends SharedSubCommand {
             return CommandResult.NO_PERMISSION;
         }
 
-        DataMutateResult result = holder.setPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).withExtraContext(context).build());
+        DataMutateResult result = holder.setPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).withContext(context).build());
         if (result.asBoolean()) {
             TextComponent.Builder builder = Message.ADD_CHATMETA_SUCCESS.asComponent(plugin.getLocaleManager(), holder.getFormattedDisplayName(), this.type.name().toLowerCase(), meta, priority, MessageUtils.contextSetToString(plugin.getLocaleManager(), context)).toBuilder();
             HoverEvent event = HoverEvent.showText(TextUtils.fromLegacy(

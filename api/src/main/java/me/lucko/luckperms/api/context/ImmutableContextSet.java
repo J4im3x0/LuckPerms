@@ -25,35 +25,28 @@
 
 package me.lucko.luckperms.api.context;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Spliterator;
 
 /**
  * An immutable implementation of {@link ContextSet}.
  *
  * @since 2.16
  */
-public final class ImmutableContextSet extends AbstractContextSet implements ContextSet {
-    private static final ImmutableContextSet EMPTY = new ImmutableContextSet(ImmutableSetMultimap.of());
+public interface ImmutableContextSet extends ContextSet {
 
     /**
      * Creates an {@link ImmutableContextSet.Builder}.
      *
      * @return a new ImmutableContextSet builder
-     * @since 4.1
      */
-    public static @NonNull Builder builder() {
-        return new Builder();
+    static @NonNull Builder builder() {
+        return new ImmutableContextSetImpl.BuilderImpl();
     }
 
     /**
@@ -64,8 +57,8 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @return a new ImmutableContextSet containing one context pair
      * @throws NullPointerException if key or value is null
      */
-    public static @NonNull ImmutableContextSet singleton(@NonNull String key, @NonNull String value) {
-        return new ImmutableContextSet(ImmutableSetMultimap.of(sanitizeKey(key), sanitizeValue(value)));
+    static @NonNull ImmutableContextSet singleton(@NonNull String key, @NonNull String value) {
+        return ImmutableContextSetImpl.of(key, value);
     }
 
     /**
@@ -77,15 +70,9 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @param value2 the second value
      * @return a new ImmutableContextSet containing the two pairs
      * @throws NullPointerException if any of the keys or values are null
-     * @since 3.1
      */
-    public static @NonNull ImmutableContextSet of(@NonNull String key1, @NonNull String value1, @NonNull String key2, @NonNull String value2) {
-        return new ImmutableContextSet(ImmutableSetMultimap.of(
-                sanitizeKey(key1),
-                sanitizeValue(value1),
-                sanitizeKey(key2),
-                sanitizeValue(value2)
-        ));
+    static @NonNull ImmutableContextSet of(@NonNull String key1, @NonNull String value1, @NonNull String key2, @NonNull String value2) {
+        return ImmutableContextSetImpl.of(key1, value1, key2, value2);
     }
 
     /**
@@ -95,9 +82,9 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @return a new ImmutableContextSet representing the pairs in the iterable
      * @throws NullPointerException if the iterable is null
      */
-    public static @NonNull ImmutableContextSet fromEntries(@NonNull Iterable<? extends Map.Entry<String, String>> iterable) {
+    static @NonNull ImmutableContextSet fromEntries(@NonNull Iterable<? extends Map.Entry<String, String>> iterable) {
         Objects.requireNonNull(iterable, "iterable");
-        ImmutableContextSet.Builder builder = builder();
+        Builder builder = builder();
         for (Map.Entry<String, String> entry : iterable) {
             builder.add(entry);
         }
@@ -111,8 +98,14 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @return a new ImmutableContextSet representing the pairs from the map
      * @throws NullPointerException if the map is null
      */
-    public static @NonNull ImmutableContextSet fromMap(@NonNull Map<String, String> map) {
-        return fromEntries(Objects.requireNonNull(map, "map").entrySet());
+    static @NonNull ImmutableContextSet fromMap(@NonNull Map<String, String> map) {
+        Iterable<? extends Map.Entry<String, String>> iterable = Objects.requireNonNull(map, "map").entrySet();
+        Objects.requireNonNull(iterable, "iterable");
+        Builder builder = builder();
+        for (Map.Entry<String, String> entry : iterable) {
+            builder.add(entry);
+        }
+        return builder.build();
     }
 
     /**
@@ -123,8 +116,14 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @throws NullPointerException if the multimap is null
      * @since 2.16
      */
-    public static @NonNull ImmutableContextSet fromMultimap(@NonNull Multimap<String, String> multimap) {
-        return fromEntries(Objects.requireNonNull(multimap, "multimap").entries());
+    static @NonNull ImmutableContextSet fromMultimap(@NonNull Multimap<String, String> multimap) {
+        Iterable<? extends Map.Entry<String, String>> iterable = Objects.requireNonNull(multimap, "multimap").entries();
+        Objects.requireNonNull(iterable, "iterable");
+        Builder builder = builder();
+        for (Map.Entry<String, String> entry : iterable) {
+            builder.add(entry);
+        }
+        return builder.build();
     }
 
     /**
@@ -136,7 +135,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      * @return a new ImmutableContextSet with the same content and the one provided
      * @throws NullPointerException if contextSet is null
      */
-    public static @NonNull ImmutableContextSet fromSet(@NonNull ContextSet contextSet) {
+    static @NonNull ImmutableContextSet fromSet(@NonNull ContextSet contextSet) {
         return Objects.requireNonNull(contextSet, "contextSet").makeImmutable();
     }
 
@@ -145,128 +144,21 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
      *
      * @return an empty ImmutableContextSet
      */
-    public static @NonNull ImmutableContextSet empty() {
-        return EMPTY;
-    }
-
-    private final ImmutableSetMultimap<String, String> map;
-    private final int hashCode;
-
-    ImmutableContextSet(ImmutableSetMultimap<String, String> contexts) {
-        this.map = contexts;
-        this.hashCode = this.map.hashCode();
-    }
-
-    @Override
-    protected SetMultimap<String, String> backing() {
-        return this.map;
-    }
-
-    @Override
-    protected void copyTo(SetMultimap<String, String> other) {
-        other.putAll(this.map);
-    }
-
-    @Override
-    public boolean isImmutable() {
-        return true;
-    }
-
-    @Deprecated
-    @Override // This set is already immutable!
-    public @NonNull ImmutableContextSet makeImmutable() {
-        return this;
-    }
-
-    @Override
-    public @NonNull MutableContextSet mutableCopy() {
-        return MutableContextSet.fromSet(this);
-    }
-
-    @Override
-    public @NonNull Set<Map.Entry<String, String>> toSet() {
-        return this.map.entries();
-    }
-
-    @Deprecated
-    @Override
-    public @NonNull Map<String, String> toMap() {
-        ImmutableMap.Builder<String, String> m = ImmutableMap.builder();
-        for (Map.Entry<String, String> e : this.map.entries()) {
-            m.put(e.getKey(), e.getValue());
-        }
-        return m.build();
-    }
-
-    @Override
-    public @NonNull Multimap<String, String> toMultimap() {
-        return this.map;
-    }
-
-    @Override
-    public @NonNull Iterator<Map.Entry<String, String>> iterator() {
-        return this.map.entries().iterator();
-    }
-
-    @Override
-    public Spliterator<Map.Entry<String, String>> spliterator() {
-        return this.map.entries().spliterator();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) return true;
-        if (!(o instanceof ContextSet)) return false;
-        final ContextSet that = (ContextSet) o;
-
-        // fast(er) path for ImmutableContextSet comparisons
-        if (that instanceof ImmutableContextSet) {
-            ImmutableContextSet immutableThat = (ImmutableContextSet) that;
-            if (this.hashCode != immutableThat.hashCode) return false;
-        }
-
-        final Multimap<String, String> thatBacking;
-        if (that instanceof AbstractContextSet) {
-            thatBacking = ((AbstractContextSet) that).backing();
-        } else {
-            thatBacking = that.toMultimap();
-        }
-
-        return backing().equals(thatBacking);
-    }
-
-    @Override
-    public int hashCode() {
-        return this.hashCode;
-    }
-
-    @Override
-    public String toString() {
-        return "ImmutableContextSet(contexts=" + this.map + ")";
+    static @NonNull ImmutableContextSet empty() {
+        return ImmutableContextSetImpl.EMPTY;
     }
 
     /**
-     * A builder for {@link ImmutableContextSet}.
-     *
-     * @since 4.1
+     * @deprecated Already immutable!
      */
-    public static final class Builder {
-        private ImmutableSetMultimap.Builder<String, String> builder;
+    @Override
+    @Deprecated
+    @NonNull ImmutableContextSet makeImmutable();
 
-        private Builder() {
-
-        }
-
-        private synchronized ImmutableSetMultimap.Builder<String, String> builder() {
-            if (this.builder == null) {
-                this.builder = ImmutableSetMultimap.builder();
-            }
-            return this.builder;
-        }
-
-        private void put(String key, String value) {
-            builder().put(key, value);
-        }
+    /**
+     * A builder for {@link ImmutableContextSet}.
+     */
+    interface Builder extends ContextConsumer {
 
         /**
          * Adds a context to the set.
@@ -277,9 +169,11 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @throws NullPointerException if the key or value is null
          * @see MutableContextSet#add(String, String)
          */
-        public @NonNull Builder add(@NonNull String key, @NonNull String value) {
-            put(sanitizeKey(key), sanitizeValue(value));
-            return this;
+        @NonNull Builder add(@NonNull String key, @NonNull String value);
+
+        @Override
+        default void accept(@NonNull String key, @NonNull String value) {
+            add(key, value);
         }
 
         /**
@@ -290,7 +184,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @throws NullPointerException if the entry is null
          * @see MutableContextSet#add(Map.Entry)
          */
-        public @NonNull Builder add(Map.@NonNull Entry<String, String> entry) {
+        default @NonNull Builder add(Map.@NonNull Entry<String, String> entry) {
             Objects.requireNonNull(entry, "entry");
             add(entry.getKey(), entry.getValue());
             return this;
@@ -304,7 +198,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @throws NullPointerException if iterable is null
          * @see MutableContextSet#addAll(Iterable)
          */
-        public @NonNull Builder addAll(@NonNull Iterable<? extends Map.Entry<String, String>> iterable) {
+        default @NonNull Builder addAll(@NonNull Iterable<? extends Map.Entry<String, String>> iterable) {
             for (Map.Entry<String, String> e : Objects.requireNonNull(iterable, "iterable")) {
                 add(e);
             }
@@ -319,7 +213,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @throws NullPointerException if the map is null
          * @see MutableContextSet#addAll(Map)
          */
-        public @NonNull Builder addAll(@NonNull Map<String, String> map) {
+        default @NonNull Builder addAll(@NonNull Map<String, String> map) {
             addAll(Objects.requireNonNull(map, "map").entrySet());
             return this;
         }
@@ -333,7 +227,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @since 3.4
          * @see MutableContextSet#addAll(Multimap)
          */
-        public @NonNull Builder addAll(@NonNull Multimap<String, String> multimap) {
+        default @NonNull Builder addAll(@NonNull Multimap<String, String> multimap) {
             addAll(Objects.requireNonNull(multimap, "multimap").entries());
             return this;
         }
@@ -346,18 +240,7 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          * @throws NullPointerException if the contextSet is null
          * @see MutableContextSet#addAll(ContextSet)
          */
-        public @NonNull Builder addAll(@NonNull ContextSet contextSet) {
-            Objects.requireNonNull(contextSet, "contextSet");
-            if (contextSet instanceof AbstractContextSet) {
-                AbstractContextSet other = ((AbstractContextSet) contextSet);
-                if (!other.isEmpty()) {
-                    builder().putAll(other.backing());
-                }
-            } else {
-                addAll(contextSet.toMultimap());
-            }
-            return this;
-        }
+        @NonNull Builder addAll(@NonNull ContextSet contextSet);
 
         /**
          * Creates a {@link ImmutableContextSet} from the values previously
@@ -365,12 +248,6 @@ public final class ImmutableContextSet extends AbstractContextSet implements Con
          *
          * @return an {@link ImmutableContextSet} from the builder
          */
-        public @NonNull ImmutableContextSet build() {
-            if (this.builder == null) {
-                return empty();
-            } else {
-                return new ImmutableContextSet(this.builder.build());
-            }
-        }
+        @NonNull ImmutableContextSet build();
     }
 }

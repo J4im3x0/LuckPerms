@@ -25,7 +25,6 @@
 
 package me.lucko.luckperms.api.caching;
 
-import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.Group;
 
 /**
@@ -33,10 +32,6 @@ import me.lucko.luckperms.api.Group;
  *
  * <p>All calls will account for inheritance, as well as any default data provided
  * by the platform. This calls are heavily cached and are therefore fast.</p>
- *
- * <p>For meta, both methods accepting {@link Contexts} and {@link MetaContexts} are provided. The only difference is that
- * the latter allows you to define how the meta stack should be structured internally. Where {@link Contexts} are passed, the
- * values from the configuration are used.</p>
  *
  * @since 4.0
  */

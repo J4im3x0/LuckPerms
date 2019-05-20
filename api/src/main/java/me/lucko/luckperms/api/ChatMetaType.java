@@ -25,6 +25,11 @@
 
 package me.lucko.luckperms.api;
 
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.ChatMetaNode;
+import me.lucko.luckperms.api.node.types.PrefixNode;
+import me.lucko.luckperms.api.node.types.SuffixNode;
+
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.Map;
@@ -44,12 +49,14 @@ public enum ChatMetaType {
     PREFIX("prefix") {
         @Override
         public boolean matches(@NonNull Node node) {
-            return Objects.requireNonNull(node, "node").isPrefix();
+            Objects.requireNonNull(node, "node");
+            return node instanceof PrefixNode;
         }
 
         @Override
         public Map.@NonNull Entry<Integer, String> getEntry(@NonNull Node node) {
-            return Objects.requireNonNull(node, "node").getPrefix();
+            Objects.requireNonNull(node, "node");
+            return ((PrefixNode) node).getAsEntry();
         }
     },
 
@@ -59,12 +66,14 @@ public enum ChatMetaType {
     SUFFIX("suffix") {
         @Override
         public boolean matches(@NonNull Node node) {
-            return Objects.requireNonNull(node, "node").isSuffix();
+            Objects.requireNonNull(node, "node");
+            return node instanceof SuffixNode;
         }
 
         @Override
         public Map.@NonNull Entry<Integer, String> getEntry(@NonNull Node node) {
-            return Objects.requireNonNull(node, "node").getSuffix();
+            Objects.requireNonNull(node, "node");
+            return ((SuffixNode) node).getAsEntry();
         }
     };
 
@@ -114,10 +123,8 @@ public enum ChatMetaType {
      * @since 3.4
      */
     public static @NonNull Optional<ChatMetaType> ofNode(@NonNull Node node) {
-        if (node.isPrefix()) {
-            return Optional.of(PREFIX);
-        } else if (node.isSuffix()) {
-            return Optional.of(SUFFIX);
+        if (node instanceof ChatMetaNode<?, ?>) {
+            return Optional.of(((ChatMetaNode) node).getType());
         } else {
             return Optional.empty();
         }

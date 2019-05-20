@@ -25,7 +25,8 @@
 
 package me.lucko.luckperms.common.backup;
 
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
 import me.lucko.luckperms.common.locale.message.Message;
 import me.lucko.luckperms.common.model.Group;
 import me.lucko.luckperms.common.model.HolderType;
@@ -220,7 +221,7 @@ public class Exporter implements Runnable {
 
                         boolean inDefault = false;
                         for (Node node : user.enduringData().immutable().values()) {
-                            if (node.isGroupNode() && node.getGroupName().equalsIgnoreCase(NodeFactory.DEFAULT_GROUP_NAME)) {
+                            if (node instanceof InheritanceNode && ((InheritanceNode) node).getGroupName().equalsIgnoreCase(NodeFactory.DEFAULT_GROUP_NAME)) {
                                 inDefault = true;
                                 continue;
                             }

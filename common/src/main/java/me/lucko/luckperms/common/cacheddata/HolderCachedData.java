@@ -25,8 +25,9 @@
 
 package me.lucko.luckperms.common.cacheddata;
 
-import me.lucko.luckperms.api.Contexts;
-import me.lucko.luckperms.api.caching.MetaContexts;
+import me.lucko.luckperms.api.ChatMetaType;
+import me.lucko.luckperms.api.metastacking.MetaStackDefinition;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.cacheddata.type.MetaAccumulator;
 import me.lucko.luckperms.common.calculator.CalculatorFactory;
 import me.lucko.luckperms.common.config.ConfigKeys;
@@ -55,27 +56,24 @@ public abstract class HolderCachedData<T extends PermissionHolder> extends Abstr
     }
 
     @Override
-    protected MetaContexts getDefaultMetaContexts(Contexts contexts) {
-        return getPlugin().getContextManager().formMetaContexts(contexts);
+    protected MetaStackDefinition getDefaultMetaStackDefinition(ChatMetaType type) {
+        switch (type) {
+            case PREFIX:
+                return getPlugin().getConfiguration().get(ConfigKeys.PREFIX_FORMATTING_OPTIONS);
+            case SUFFIX:
+                return getPlugin().getConfiguration().get(ConfigKeys.SUFFIX_FORMATTING_OPTIONS);
+            default:
+                throw new AssertionError();
+        }
     }
 
     @Override
-    protected Map<String, Boolean> resolvePermissions() {
-        return this.holder.exportPermissions(true, getPlugin().getConfiguration().get(ConfigKeys.APPLYING_SHORTHAND));
+    protected Map<String, Boolean> resolvePermissions(QueryOptions queryOptions) {
+        return this.holder.exportPermissions(queryOptions, true, getPlugin().getConfiguration().get(ConfigKeys.APPLYING_SHORTHAND));
     }
 
     @Override
-    protected Map<String, Boolean> resolvePermissions(Contexts contexts) {
-        return this.holder.exportPermissions(contexts, true, getPlugin().getConfiguration().get(ConfigKeys.APPLYING_SHORTHAND));
-    }
-
-    @Override
-    protected void resolveMeta(MetaAccumulator accumulator) {
-        this.holder.accumulateMeta(accumulator);
-    }
-
-    @Override
-    protected void resolveMeta(MetaAccumulator accumulator, MetaContexts contexts) {
-        this.holder.accumulateMeta(accumulator, contexts.getContexts());
+    protected void resolveMeta(MetaAccumulator accumulator, QueryOptions queryOptions) {
+        this.holder.accumulateMeta(accumulator, queryOptions);
     }
 }

@@ -29,11 +29,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.Contexts;
 import me.lucko.luckperms.api.DataMutateResult;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.Tristate;
 import me.lucko.luckperms.api.context.ImmutableContextSet;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
+import me.lucko.luckperms.api.node.types.MetaNode;
+import me.lucko.luckperms.api.node.types.PrefixNode;
+import me.lucko.luckperms.api.node.types.SuffixNode;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.cacheddata.type.MetaAccumulator;
 import me.lucko.luckperms.common.model.Group;
 import me.lucko.luckperms.common.model.HolderType;
@@ -41,7 +45,8 @@ import me.lucko.luckperms.common.model.NodeMapType;
 import me.lucko.luckperms.common.model.PermissionHolder;
 import me.lucko.luckperms.common.model.User;
 import me.lucko.luckperms.common.node.factory.NodeFactory;
-import me.lucko.luckperms.common.node.model.NodeTypes;
+import me.lucko.luckperms.common.node.factory.NodeTypes;
+import me.lucko.luckperms.common.node.utils.MetaType;
 import me.lucko.luckperms.sponge.service.LuckPermsService;
 import me.lucko.luckperms.sponge.service.ProxyFactory;
 import me.lucko.luckperms.sponge.service.model.LPSubject;
@@ -99,7 +104,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         for (Map.Entry<ImmutableContextSet, ? extends Collection<? extends Node>> entry : this.holder.getData(this.type).immutable().asMap().entrySet()) {
             ImmutableMap.Builder<String, Boolean> builder = ImmutableMap.builder();
             for (Node n : entry.getValue()) {
-                builder.put(n.getPermission(), n.getValue());
+                builder.put(n.getKey(), n.getValue());
             }
             ret.put(entry.getKey(), builder.build());
         }
@@ -110,7 +115,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     public ImmutableMap<String, Boolean> getPermissions(ImmutableContextSet contexts) {
         ImmutableMap.Builder<String, Boolean> builder = ImmutableMap.builder();
         for (Node n : this.holder.getData(this.type).immutable().get(contexts)) {
-            builder.put(n.getPermission(), n.getValue());
+            builder.put(n.getKey(), n.getValue());
         }
         return builder.build();
     }
@@ -123,7 +128,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
 
         if (tristate == Tristate.UNDEFINED) {
             // Unset
-            Node node = NodeFactory.builder(permission).withExtraContext(contexts).build();
+            Node node = NodeFactory.builder(permission).withContext(contexts).build();
             this.type.run(
                     () -> this.holder.unsetPermission(node),
                     () -> this.holder.unsetTransientPermission(node)
@@ -131,7 +136,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
             return save(this.holder).thenApply(v -> true);
         }
 
-        Node node = NodeFactory.builder(permission).setValue(tristate.asBoolean()).withExtraContext(contexts).build();
+        Node node = NodeFactory.builder(permission).value(tristate.asBoolean()).withContext(contexts).build();
         this.type.run(
                 () -> {
                     // unset the inverse, to allow false -> true, true -> false overrides.
@@ -150,7 +155,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     @Override
     public CompletableFuture<Boolean> clearPermissions() {
         boolean ret = this.type.supply(
-                this.holder::clearNodes,
+                this.holder::clearEnduringNodes,
                 this.holder::clearTransientNodes
         );
 
@@ -169,10 +174,10 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     public CompletableFuture<Boolean> clearPermissions(ImmutableContextSet contexts) {
         Objects.requireNonNull(contexts, "contexts");
         boolean ret = this.type.supply(
-                () -> this.holder.clearNodes(contexts),
+                () -> this.holder.clearEnduringNodes(contexts),
                 () -> {
                     List<Node> toRemove = streamNodes()
-                            .filter(n -> n.getFullContexts().equals(contexts))
+                            .filter(n -> n.getContexts().equals(contexts))
                             .collect(Collectors.toList());
 
                     toRemove.forEach(this.holder::unsetTransientPermission);
@@ -197,8 +202,8 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         for (Map.Entry<ImmutableContextSet, ? extends Collection<? extends Node>> entry : this.holder.getData(this.type).immutable().asMap().entrySet()) {
             ImmutableList.Builder<LPSubjectReference> builder = ImmutableList.builder();
             for (Node n : entry.getValue()) {
-                if (n.isGroupNode()) {
-                    builder.add(this.service.getGroupSubjects().loadSubject(n.getGroupName()).join().toReference());
+                if (n instanceof InheritanceNode) {
+                    builder.add(this.service.getGroupSubjects().loadSubject(((InheritanceNode) n).getGroupName()).join().toReference());
                 }
             }
             ret.put(entry.getKey(), builder.build());
@@ -210,8 +215,8 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     public ImmutableList<LPSubjectReference> getParents(ImmutableContextSet contexts) {
         ImmutableList.Builder<LPSubjectReference> builder = ImmutableList.builder();
         for (Node n : this.holder.getData(this.type).immutable().get(contexts)) {
-            if (n.isGroupNode()) {
-                builder.add(this.service.getGroupSubjects().loadSubject(n.getGroupName()).join().toReference());
+            if (n instanceof InheritanceNode) {
+                builder.add(this.service.getGroupSubjects().loadSubject(((InheritanceNode) n).getGroupName()).join().toReference());
             }
         }
         return builder.build();
@@ -227,7 +232,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         }
 
         Node node = NodeFactory.buildGroupNode(subject.getSubjectIdentifier())
-                .withExtraContext(contexts)
+                .withContext(contexts)
                 .build();
 
         DataMutateResult result = this.type.supply(
@@ -252,7 +257,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         }
 
         Node node = NodeFactory.buildGroupNode(subject.getSubjectIdentifier())
-                .withExtraContext(contexts)
+                .withContext(contexts)
                 .build();
 
         DataMutateResult result = this.type.supply(
@@ -270,10 +275,10 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     @Override
     public CompletableFuture<Boolean> clearParents() {
         boolean ret = this.type.supply(
-                () -> this.holder.clearParents(true),
+                () -> this.holder.clearEnduringParents(true),
                 () -> {
                     List<Node> toRemove = streamNodes()
-                            .filter(Node::isGroupNode)
+                            .filter(n -> n instanceof InheritanceNode)
                             .collect(Collectors.toList());
 
                     toRemove.forEach(this.holder::unsetTransientPermission);
@@ -292,11 +297,11 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     public CompletableFuture<Boolean> clearParents(ImmutableContextSet contexts) {
         Objects.requireNonNull(contexts, "contexts");
         boolean ret = this.type.supply(
-                () -> this.holder.clearParents(contexts, true),
+                () -> this.holder.clearEnduringParents(contexts, true),
                 () -> {
                     List<Node> toRemove = streamNodes()
-                            .filter(Node::isGroupNode)
-                            .filter(n -> n.getFullContexts().equals(contexts))
+                            .filter(n -> n instanceof InheritanceNode)
+                            .filter(n -> n.getContexts().equals(contexts))
                             .collect(Collectors.toList());
 
                     toRemove.forEach(this.holder::unsetTransientPermission);
@@ -332,10 +337,11 @@ public class PermissionHolderSubjectData implements LPSubjectData {
 
         for (Node n : nodes) {
             if (!n.getValue()) continue;
-            if (!n.isMeta() && !n.isPrefix() && !n.isSuffix()) continue;
+            if (!MetaType.ANY.matches(n)) continue;
 
-            if (n.isPrefix()) {
-                Map.Entry<Integer, String> value = n.getPrefix();
+            if (n instanceof PrefixNode) {
+                PrefixNode pn = (PrefixNode) n;
+                Map.Entry<Integer, String> value = pn.getAsEntry();
                 if (value.getKey() > maxPrefixPriority) {
                     builder.put(NodeTypes.PREFIX_KEY, value.getValue());
                     maxPrefixPriority = value.getKey();
@@ -343,8 +349,9 @@ public class PermissionHolderSubjectData implements LPSubjectData {
                 continue;
             }
 
-            if (n.isSuffix()) {
-                Map.Entry<Integer, String> value = n.getSuffix();
+            if (n instanceof SuffixNode) {
+                SuffixNode sn = (SuffixNode) n;
+                Map.Entry<Integer, String> value = sn.getAsEntry();
                 if (value.getKey() > maxSuffixPriority) {
                     builder.put(NodeTypes.SUFFIX_KEY, value.getValue());
                     maxSuffixPriority = value.getKey();
@@ -352,9 +359,9 @@ public class PermissionHolderSubjectData implements LPSubjectData {
                 continue;
             }
 
-            if (n.isMeta()) {
-                Map.Entry<String, String> meta = n.getMeta();
-                builder.put(meta.getKey(), meta.getValue());
+            if (n instanceof MetaNode) {
+                MetaNode mn = (MetaNode) n;
+                builder.put(mn.getMetaKey(), mn.getMetaValue());
             }
         }
 
@@ -375,29 +382,29 @@ public class PermissionHolderSubjectData implements LPSubjectData {
             // remove all prefixes/suffixes from the user
             streamNodes()
                     .filter(type::matches)
-                    .filter(n -> n.getFullContexts().equals(contexts))
+                    .filter(n -> ((Node) n).getContexts().equals(contexts))
                     .forEach(n -> this.type.run(
                             () -> this.holder.unsetPermission(n),
                             () -> this.holder.unsetTransientPermission(n)
                     ));
 
-            MetaAccumulator metaAccumulator = this.holder.accumulateMeta(null, Contexts.global().setContexts(contexts));
+            MetaAccumulator metaAccumulator = this.holder.accumulateMeta(null, QueryOptions.defaultContextualOptions().toBuilder().context(contexts).build());
             metaAccumulator.complete();
             int priority = metaAccumulator.getChatMeta(type).keySet().stream().mapToInt(e -> e).max().orElse(0);
             priority += 10;
 
-            node = NodeFactory.buildChatMetaNode(type, priority, value).withExtraContext(contexts).build();
+            node = NodeFactory.buildChatMetaNode(type, priority, value).withContext(contexts).build();
         } else {
             // standard remove
             streamNodes()
-                    .filter(n -> n.isMeta() && n.getMeta().getKey().equals(key))
-                    .filter(n -> n.getFullContexts().equals(contexts))
+                    .filter(n -> n instanceof MetaNode && ((MetaNode) n).getMetaKey().equals(key))
+                    .filter(n -> n.getContexts().equals(contexts))
                     .forEach(n -> this.type.run(
                             () -> this.holder.unsetPermission(n),
                             () -> this.holder.unsetTransientPermission(n)
                     ));
 
-            node = NodeFactory.buildMetaNode(key, value).withExtraContext(contexts).build();
+            node = NodeFactory.buildMetaNode(key, value).withContext(contexts).build();
         }
 
         this.type.run(
@@ -415,14 +422,14 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         streamNodes()
                 .filter(n -> {
                     if (key.equalsIgnoreCase(NodeTypes.PREFIX_KEY)) {
-                        return n.isPrefix();
+                        return n instanceof PrefixNode;
                     } else if (key.equalsIgnoreCase(NodeTypes.SUFFIX_KEY)) {
-                        return n.isSuffix();
+                        return n instanceof SuffixNode;
                     } else {
-                        return n.isMeta() && n.getMeta().getKey().equals(key);
+                        return n instanceof MetaNode && ((MetaNode) n).getMetaKey().equals(key);
                     }
                 })
-                .filter(n -> n.getFullContexts().equals(contexts))
+                .filter(n -> n.getContexts().equals(contexts))
                 .forEach(node -> this.type.run(
                         () -> this.holder.unsetPermission(node),
                         () -> this.holder.unsetTransientPermission(node)
@@ -436,8 +443,8 @@ public class PermissionHolderSubjectData implements LPSubjectData {
         Objects.requireNonNull(contexts, "contexts");
 
         List<Node> toRemove = streamNodes()
-                .filter(n -> n.isMeta() || n.isPrefix() || n.isSuffix())
-                .filter(n -> n.getFullContexts().equals(contexts))
+                .filter(MetaType.ANY::matches)
+                .filter(n -> n.getContexts().equals(contexts))
                 .collect(Collectors.toList());
 
         toRemove.forEach(node -> this.type.run(
@@ -455,7 +462,7 @@ public class PermissionHolderSubjectData implements LPSubjectData {
     @Override
     public CompletableFuture<Boolean> clearOptions() {
         List<Node> toRemove = streamNodes()
-                .filter(n -> n.isMeta() || n.isPrefix() || n.isSuffix())
+                .filter(MetaType.ANY::matches)
                 .collect(Collectors.toList());
 
         toRemove.forEach(node -> this.type.run(

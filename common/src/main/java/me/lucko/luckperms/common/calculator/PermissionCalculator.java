@@ -86,7 +86,7 @@ public class PermissionCalculator implements Function<String, TristateResult> {
         TristateResult result = this.lookupCache.get(permission);
 
         // log this permission lookup to the verbose handler
-        this.plugin.getVerboseHandler().offerPermissionCheckEvent(origin, this.metadata.getObjectName(), this.metadata.getContext(), permission, result);
+        this.plugin.getVerboseHandler().offerPermissionCheckEvent(origin, this.metadata.getObjectName(), this.metadata.getQueryOptions(), permission, result);
 
         // return the result
         return result;

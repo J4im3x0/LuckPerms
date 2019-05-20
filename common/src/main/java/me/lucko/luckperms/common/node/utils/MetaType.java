@@ -25,7 +25,10 @@
 
 package me.lucko.luckperms.common.node.utils;
 
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.MetaNode;
+import me.lucko.luckperms.api.node.types.PrefixNode;
+import me.lucko.luckperms.api.node.types.SuffixNode;
 
 /**
  * Represents a type of meta
@@ -58,7 +61,7 @@ public enum MetaType {
     META {
         @Override
         public boolean matches(Node node) {
-            return node.isMeta();
+            return node instanceof MetaNode;
         }
     },
 
@@ -68,7 +71,7 @@ public enum MetaType {
     PREFIX {
         @Override
         public boolean matches(Node node) {
-            return node.isPrefix();
+            return node instanceof PrefixNode;
         }
     },
 
@@ -78,7 +81,7 @@ public enum MetaType {
     SUFFIX {
         @Override
         public boolean matches(Node node) {
-            return node.isSuffix();
+            return node instanceof SuffixNode;
         }
     };
 

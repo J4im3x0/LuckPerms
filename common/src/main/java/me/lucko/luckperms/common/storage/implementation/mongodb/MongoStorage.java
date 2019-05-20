@@ -35,15 +35,15 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.ReplaceOptions;
 
-import me.lucko.luckperms.api.HeldPermission;
-import me.lucko.luckperms.api.LogEntry;
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.HeldNode;
 import me.lucko.luckperms.api.PlayerSaveResult;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.context.ContextSet;
 import me.lucko.luckperms.api.context.ImmutableContextSet;
 import me.lucko.luckperms.api.context.MutableContextSet;
+import me.lucko.luckperms.api.node.Node;
 import me.lucko.luckperms.common.actionlog.ExtendedLogEntry;
 import me.lucko.luckperms.common.actionlog.Log;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdate;
@@ -55,7 +55,6 @@ import me.lucko.luckperms.common.model.User;
 import me.lucko.luckperms.common.model.UserIdentifier;
 import me.lucko.luckperms.common.model.manager.group.GroupManager;
 import me.lucko.luckperms.common.model.manager.track.TrackManager;
-import me.lucko.luckperms.common.node.factory.LegacyNodeFactory;
 import me.lucko.luckperms.common.node.factory.NodeFactory;
 import me.lucko.luckperms.common.node.model.NodeDataContainer;
 import me.lucko.luckperms.common.node.model.NodeHeldPermission;
@@ -163,7 +162,7 @@ public class MongoStorage implements StorageImplementation {
     }
 
     @Override
-    public void logAction(LogEntry entry) {
+    public void logAction(Action entry) {
         MongoCollection<Document> c = this.database.getCollection(this.prefix + "action");
         Document doc = new Document()
                 .append("timestamp", entry.getTimestamp())
@@ -197,7 +196,7 @@ public class MongoStorage implements StorageImplementation {
                         .timestamp(d.getLong("timestamp"))
                         .actor(d.get("actor", UUID.class))
                         .actorName(d.getString("actorName"))
-                        .type(LogEntry.Type.valueOf(d.getString("type").charAt(0)))
+                        .type(Action.Type.valueOf(d.getString("type").charAt(0)))
                         .acted(actedUuid)
                         .actedName(d.getString("actedName"))
                         .action(d.getString("action"))
@@ -290,7 +289,7 @@ public class MongoStorage implements StorageImplementation {
                     }
                 } else {
                     if (this.plugin.getUserManager().shouldSave(user)) {
-                        user.clearNodes();
+                        user.clearEnduringNodes();
                         user.getPrimaryGroup().setStoredValue(null);
                         this.plugin.getUserManager().giveDefaultIfNeeded(user, false);
                     }
@@ -310,7 +309,7 @@ public class MongoStorage implements StorageImplementation {
             if (!this.plugin.getUserManager().shouldSave(user)) {
                 c.deleteOne(new Document("_id", user.getUuid()));
             } else {
-                c.replaceOne(new Document("_id", user.getUuid()), userToDoc(user), new UpdateOptions().upsert(true));
+                c.replaceOne(new Document("_id", user.getUuid()), userToDoc(user), new ReplaceOptions().upsert(true));
             }
         } finally {
             user.getIoLock().unlock();
@@ -331,8 +330,8 @@ public class MongoStorage implements StorageImplementation {
     }
 
     @Override
-    public List<HeldPermission<UUID>> getUsersWithPermission(Constraint constraint) {
-        List<HeldPermission<UUID>> held = new ArrayList<>();
+    public List<HeldNode<UUID>> getUsersWithPermission(Constraint constraint) {
+        List<HeldNode<UUID>> held = new ArrayList<>();
         MongoCollection<Document> c = this.database.getCollection(this.prefix + "users");
         try (MongoCursor<Document> cursor = c.find().iterator()) {
             while (cursor.hasNext()) {
@@ -438,7 +437,7 @@ public class MongoStorage implements StorageImplementation {
         group.getIoLock().lock();
         try {
             MongoCollection<Document> c = this.database.getCollection(this.prefix + "groups");
-            c.replaceOne(new Document("_id", group.getName()), groupToDoc(group), new UpdateOptions().upsert(true));
+            c.replaceOne(new Document("_id", group.getName()), groupToDoc(group), new ReplaceOptions().upsert(true));
         } finally {
             group.getIoLock().unlock();
         }
@@ -456,8 +455,8 @@ public class MongoStorage implements StorageImplementation {
     }
 
     @Override
-    public List<HeldPermission<String>> getGroupsWithPermission(Constraint constraint) {
-        List<HeldPermission<String>> held = new ArrayList<>();
+    public List<HeldNode<String>> getGroupsWithPermission(Constraint constraint) {
+        List<HeldNode<String>> held = new ArrayList<>();
         MongoCollection<Document> c = this.database.getCollection(this.prefix + "groups");
         try (MongoCursor<Document> cursor = c.find().iterator()) {
             while (cursor.hasNext()) {
@@ -591,7 +590,7 @@ public class MongoStorage implements StorageImplementation {
 
         // do the insert
         if (!username.equalsIgnoreCase(oldUsername)) {
-            c.replaceOne(new Document("_id", uuid), new Document("_id", uuid).append("name", username), new UpdateOptions().upsert(true));
+            c.replaceOne(new Document("_id", uuid), new Document("_id", uuid).append("name", username), new ReplaceOptions().upsert(true));
         }
 
         PlayerSaveResultImpl result = PlayerSaveResultImpl.determineBaseResult(username, oldUsername);
@@ -647,19 +646,6 @@ public class MongoStorage implements StorageImplementation {
 
     private static List<NodeDataContainer> nodesFromDoc(Document document) {
         List<NodeDataContainer> nodes = new ArrayList<>();
-
-        // legacy
-        if (document.containsKey("perms") && document.get("perms") instanceof Map) {
-            //noinspection unchecked
-            Map<String, Boolean> permsMap = (Map<String, Boolean>) document.get("perms");
-            for (Map.Entry<String, Boolean> e : permsMap.entrySet()) {
-                // legacy permission key deserialisation
-                String permission = e.getKey().replace("[**DOT**]", ".").replace("[**DOLLAR**]", "$");
-                nodes.add(NodeDataContainer.fromNode(LegacyNodeFactory.fromLegacyString(permission, e.getValue())));
-            }
-        }
-
-        // new format
         if (document.containsKey("permissions") && document.get("permissions") instanceof List) {
             //noinspection unchecked
             List<Document> permsList = (List<Document>) document.get("permissions");
@@ -667,7 +653,6 @@ public class MongoStorage implements StorageImplementation {
                 nodes.add(nodeFromDoc(d));
             }
         }
-
         return nodes;
     }
 

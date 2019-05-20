@@ -27,9 +27,10 @@ package me.lucko.luckperms.common.commands.user;
 
 import com.google.common.collect.ListMultimap;
 
-import me.lucko.luckperms.api.Contexts;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.cacheddata.type.MetaCache;
 import me.lucko.luckperms.common.command.CommandResult;
 import me.lucko.luckperms.common.command.abstraction.SubCommand;
@@ -71,30 +72,32 @@ public class UserInfo extends SubCommand<User> {
                 user.getPrimaryGroup().getValue()
         );
 
-        List<Node> parents = user.enduringData().asSortedSet().stream()
-                .filter(Node::isGroupNode)
+        List<InheritanceNode> parents = user.enduringData().asSortedSet().stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
                 .filter(Node::getValue)
-                .filter(Node::isPermanent)
+                .filter(n -> !n.hasExpiry())
                 .collect(Collectors.toList());
 
-        List<Node> tempParents = user.enduringData().asSortedSet().stream()
-                .filter(Node::isGroupNode)
+        List<InheritanceNode> tempParents = user.enduringData().asSortedSet().stream()
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
                 .filter(Node::getValue)
-                .filter(Node::isTemporary)
+                .filter(Node::hasExpiry)
                 .collect(Collectors.toList());
 
         if (!parents.isEmpty()) {
             Message.INFO_PARENT_HEADER.send(sender);
-            for (Node node : parents) {
+            for (InheritanceNode node : parents) {
                 Message.INFO_PARENT_ENTRY.send(sender, node.getGroupName(), MessageUtils.getAppendableNodeContextString(plugin.getLocaleManager(), node));
             }
         }
 
         if (!tempParents.isEmpty()) {
             Message.INFO_TEMP_PARENT_HEADER.send(sender);
-            for (Node node : tempParents) {
+            for (InheritanceNode node : tempParents) {
                 Message.INFO_PARENT_ENTRY.send(sender, node.getGroupName(), MessageUtils.getAppendableNodeContextString(plugin.getLocaleManager(), node));
-                Message.INFO_PARENT_ENTRY_EXPIRY.send(sender, DurationFormatter.LONG.formatDateDiff(node.getExpiryUnixTime()));
+                Message.INFO_PARENT_ENTRY_EXPIRY.send(sender, DurationFormatter.LONG.formatDateDiff(node.getExpiry().getEpochSecond()));
             }
         }
 
@@ -102,16 +105,16 @@ public class UserInfo extends SubCommand<User> {
         String prefix = "&bNone";
         String suffix = "&bNone";
         String meta = "&bNone";
-        Contexts contexts = plugin.getContextForUser(user).orElse(null);
-        if (contexts != null) {
-            ContextSet contextSet = contexts.getContexts();
-            if (!contextSet.isEmpty()) {
+        QueryOptions queryOptions = plugin.getQueryOptionsForUser(user).orElse(null);
+        if (queryOptions != null) {
+            ContextSet contextSet = queryOptions.context();
+            if (contextSet != null && !contextSet.isEmpty()) {
                 context = contextSet.toSet().stream()
                         .map(e -> MessageUtils.contextToString(plugin.getLocaleManager(), e.getKey(), e.getValue()))
                         .collect(Collectors.joining(" "));
             }
 
-            MetaCache data = user.getCachedData().getMetaData(contexts);
+            MetaCache data = user.getCachedData().getMetaData(queryOptions);
             String prefixValue = data.getPrefix(MetaCheckEvent.Origin.INTERNAL);
             if (prefixValue != null) {
                 prefix = "&f\"" + prefixValue + "&f\"";
@@ -129,7 +132,7 @@ public class UserInfo extends SubCommand<User> {
             }
         }
 
-        Message.USER_INFO_DATA.send(sender, MessageUtils.formatBoolean(contexts != null), context, prefix, suffix, meta);
+        Message.USER_INFO_DATA.send(sender, MessageUtils.formatBoolean(queryOptions != null), context, prefix, suffix, meta);
         return CommandResult.SUCCESS;
     }
 }

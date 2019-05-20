@@ -27,10 +27,10 @@ package me.lucko.luckperms.sponge.service.model.calculated;
 
 import com.google.common.collect.ImmutableList;
 
-import me.lucko.luckperms.api.Contexts;
-import me.lucko.luckperms.api.caching.MetaContexts;
+import me.lucko.luckperms.api.ChatMetaType;
 import me.lucko.luckperms.api.metastacking.DuplicateRemovalFunction;
 import me.lucko.luckperms.api.metastacking.MetaStackDefinition;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.cacheddata.AbstractCachedData;
 import me.lucko.luckperms.common.cacheddata.CacheMetadata;
 import me.lucko.luckperms.common.cacheddata.type.MetaAccumulator;
@@ -62,8 +62,8 @@ public class CalculatedSubjectCachedData extends AbstractCachedData implements C
     }
 
     @Override
-    protected CacheMetadata getMetadataForContexts(Contexts contexts) {
-        return new CacheMetadata(this, null, this.subject.getParentCollection().getIdentifier() + "/" + this.subject.getIdentifier(), contexts.getContexts());
+    protected CacheMetadata getMetadataForQueryOptions(QueryOptions queryOptions) {
+        return new CacheMetadata(this, null, this.subject.getParentCollection().getIdentifier() + "/" + this.subject.getIdentifier(), queryOptions);
     }
 
     @Override
@@ -72,39 +72,29 @@ public class CalculatedSubjectCachedData extends AbstractCachedData implements C
     }
 
     @Override
-    protected MetaContexts getDefaultMetaContexts(Contexts contexts) {
-        return MetaContexts.of(contexts, DEFAULT_META_STACK, DEFAULT_META_STACK);
+    protected MetaStackDefinition getDefaultMetaStackDefinition(ChatMetaType type) {
+        return DEFAULT_META_STACK;
     }
 
     @Override
-    protected Map<String, Boolean> resolvePermissions() {
-        return this.subject.resolveAllPermissions();
+    protected Map<String, Boolean> resolvePermissions(QueryOptions queryOptions) {
+        return this.subject.resolveAllPermissions(queryOptions);
     }
 
     @Override
-    protected Map<String, Boolean> resolvePermissions(Contexts contexts) {
-        return this.subject.resolveAllPermissions(contexts.getContexts().makeImmutable());
+    protected void resolveMeta(MetaAccumulator accumulator, QueryOptions queryOptions) {
+        this.subject.resolveAllOptions(accumulator, queryOptions);
     }
 
     @Override
-    protected void resolveMeta(MetaAccumulator accumulator) {
-        this.subject.resolveAllOptions(accumulator);
-    }
-
-    @Override
-    protected void resolveMeta(MetaAccumulator accumulator, MetaContexts contexts) {
-        this.subject.resolveAllOptions(accumulator, contexts.getContexts().getContexts().makeImmutable());
-    }
-
-    @Override
-    public PermissionCalculator build(Contexts contexts, CacheMetadata metadata) {
+    public PermissionCalculator build(QueryOptions queryOptions, CacheMetadata metadata) {
         ImmutableList.Builder<PermissionProcessor> processors = ImmutableList.builder();
         processors.add(new MapProcessor());
         processors.add(new SpongeWildcardProcessor());
         processors.add(new WildcardProcessor());
 
         if (!this.subject.getParentCollection().isDefaultsCollection()) {
-            processors.add(new FixedDefaultsProcessor(this.subject.getService(), contexts.getContexts().makeImmutable(), this.subject.getDefaults()));
+            processors.add(new FixedDefaultsProcessor(this.subject.getService(), queryOptions, this.subject.getDefaults()));
         }
 
         return new PermissionCalculator(getPlugin(), metadata, processors.build());

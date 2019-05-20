@@ -26,8 +26,9 @@
 package me.lucko.luckperms.common.metastacking;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.LocalizedNode;
 import me.lucko.luckperms.api.metastacking.MetaStackElement;
+import me.lucko.luckperms.api.node.metadata.types.InheritedFromMetadata;
+import me.lucko.luckperms.api.node.types.ChatMetaNode;
 import me.lucko.luckperms.common.model.Track;
 import me.lucko.luckperms.common.plugin.LuckPermsPlugin;
 import me.lucko.luckperms.common.util.ImmutableCollectors;
@@ -96,8 +97,8 @@ public final class StandardStackElements {
     private static final MetaStackElement TYPE_CHECK = (node, type, current) -> type.matches(node);
     private static final MetaStackElement HIGHEST_CHECK = (node, type, current) -> current == null || type.getEntry(node).getKey() > current.getKey();
     private static final MetaStackElement LOWEST_CHECK = (node, type, current) -> current == null || type.getEntry(node).getKey() < current.getKey();
-    private static final MetaStackElement OWN_CHECK = (node, type, current) -> Uuids.fromString(node.getLocation()) != null;
-    private static final MetaStackElement INHERITED_CHECK = (node, type, current) -> Uuids.fromString(node.getLocation()) == null;
+    private static final MetaStackElement OWN_CHECK = (node, type, current) -> Uuids.fromString(node.metadata(InheritedFromMetadata.KEY).getLocation()) != null;
+    private static final MetaStackElement INHERITED_CHECK = (node, type, current) -> Uuids.fromString(node.metadata(InheritedFromMetadata.KEY).getLocation()) == null;
 
 
     // implementations
@@ -218,9 +219,9 @@ public final class StandardStackElements {
         }
 
         @Override
-        public boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
+        public boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
             Track t = this.plugin.getTrackManager().getIfLoaded(this.trackName);
-            return t != null && t.containsGroup(node.getLocation());
+            return t != null && t.containsGroup(node.metadata(InheritedFromMetadata.KEY).getLocation());
         }
 
         @Override
@@ -247,9 +248,9 @@ public final class StandardStackElements {
         }
 
         @Override
-        public boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
+        public boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
             Track t = this.plugin.getTrackManager().getIfLoaded(this.trackName);
-            return t != null && !t.containsGroup(node.getLocation());
+            return t != null && !t.containsGroup(node.metadata(InheritedFromMetadata.KEY).getLocation());
         }
 
         @Override
@@ -274,8 +275,8 @@ public final class StandardStackElements {
         }
 
         @Override
-        public boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
-            return this.groupName.equals(node.getLocation());
+        public boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
+            return this.groupName.equals(node.metadata(InheritedFromMetadata.KEY).getLocation());
         }
 
         @Override
@@ -300,8 +301,8 @@ public final class StandardStackElements {
         }
 
         @Override
-        public boolean shouldAccumulate(@NonNull LocalizedNode node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
-            return !this.groupName.equals(node.getLocation());
+        public boolean shouldAccumulate(@NonNull ChatMetaNode<?, ?> node, @NonNull ChatMetaType type, Map.@Nullable Entry<Integer, String> current) {
+            return !this.groupName.equals(node.metadata(InheritedFromMetadata.KEY).getLocation());
         }
 
         @Override

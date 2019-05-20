@@ -26,7 +26,7 @@
 package me.lucko.luckperms.common.api.implementation;
 
 import me.lucko.luckperms.api.LPConfiguration;
-import me.lucko.luckperms.api.LookupSetting;
+import me.lucko.luckperms.api.query.Flag;
 import me.lucko.luckperms.common.config.ConfigKey;
 import me.lucko.luckperms.common.config.ConfigKeys;
 import me.lucko.luckperms.common.config.LuckPermsConfiguration;
@@ -52,22 +52,22 @@ public class ApiConfiguration implements LPConfiguration {
 
     @Override
     public boolean getIncludeGlobalPerms() {
-        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).hasSetting(LookupSetting.INCLUDE_NODES_SET_WITHOUT_SERVER);
+        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).flag(Flag.INCLUDE_NODES_SET_WITHOUT_SERVER);
     }
 
     @Override
     public boolean getIncludeGlobalWorldPerms() {
-        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).hasSetting(LookupSetting.INCLUDE_NODES_SET_WITHOUT_WORLD);
+        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).flag(Flag.INCLUDE_NODES_SET_WITHOUT_WORLD);
     }
 
     @Override
     public boolean getApplyGlobalGroups() {
-        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).hasSetting(LookupSetting.APPLY_PARENTS_SET_WITHOUT_SERVER);
+        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).flag(Flag.APPLY_PARENTS_SET_WITHOUT_SERVER);
     }
 
     @Override
     public boolean getApplyGlobalWorldGroups() {
-        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).hasSetting(LookupSetting.APPLY_PARENTS_SET_WITHOUT_WORLD);
+        return this.handle.get(ConfigKeys.GLOBAL_CONTEXTS).flag(Flag.APPLY_PARENTS_SET_WITHOUT_WORLD);
     }
 
     @Override

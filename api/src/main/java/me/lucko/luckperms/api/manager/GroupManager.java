@@ -26,8 +26,7 @@
 package me.lucko.luckperms.api.manager;
 
 import me.lucko.luckperms.api.Group;
-import me.lucko.luckperms.api.HeldPermission;
-import me.lucko.luckperms.api.Storage;
+import me.lucko.luckperms.api.HeldNode;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -62,13 +61,6 @@ public interface GroupManager {
      *
      * <p>If a group by the same name already exists, it will be loaded.</p>
      *
-     * <p>This method is effectively the same as
-     * {@link Storage#createAndLoadGroup(String)}, however, the Future returns
-     * the resultant group instance instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a group cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param name the name of the group
      * @return the resultant group
      * @throws NullPointerException if the name is null
@@ -82,13 +74,6 @@ public interface GroupManager {
      * <p>Returns an {@link Optional#empty() empty optional} if the group does
      * not exist.</p>
      *
-     * <p>This method is effectively the same as
-     * {@link Storage#loadGroup(String)}, however, the Future returns
-     * the resultant group instance instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a group cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param name the name of the group
      * @return the resultant group
      * @throws NullPointerException if the name is null
@@ -101,12 +86,6 @@ public interface GroupManager {
      *
      * <p>You should call this after you make any changes to a group.</p>
      *
-     * <p>This method is effectively the same as {@link Storage#saveGroup(Group)},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a group cannot be saved,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param group the group to save
      * @return a future to encapsulate the operation.
      * @throws NullPointerException  if group is null
@@ -118,12 +97,6 @@ public interface GroupManager {
     /**
      * Permanently deletes a group from the plugin's storage provider.
      *
-     * <p>This method is effectively the same as {@link Storage#deleteGroup(Group)},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a group cannot be deleted,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
-     *
      * @param group the group to delete
      * @return a future to encapsulate the operation.
      * @throws NullPointerException  if group is null
@@ -134,12 +107,6 @@ public interface GroupManager {
 
     /**
      * Loads all groups into memory.
-     *
-     * <p>This method is effectively the same as {@link Storage#loadAllTracks()},
-     * however, the Future returns void instead of a boolean flag.</p>
-     *
-     * <p>Unlike the method in {@link Storage}, when a group cannot be loaded,
-     * the future will be {@link CompletableFuture completed exceptionally}.</p>
      *
      * @return a future to encapsulate the operation.
      * @since 4.1
@@ -154,7 +121,7 @@ public interface GroupManager {
      * @throws NullPointerException if the permission is null
      * @since 4.2
      */
-    @NonNull CompletableFuture<List<HeldPermission<String>>> getWithPermission(@NonNull String permission);
+    @NonNull CompletableFuture<List<HeldNode<String>>> getWithPermission(@NonNull String permission);
 
     /**
      * Gets a loaded group.

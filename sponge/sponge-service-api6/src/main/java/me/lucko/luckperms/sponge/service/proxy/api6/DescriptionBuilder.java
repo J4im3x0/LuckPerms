@@ -26,7 +26,7 @@
 package me.lucko.luckperms.sponge.service.proxy.api6;
 
 import me.lucko.luckperms.api.Tristate;
-import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.context.ImmutableContextSet;
 import me.lucko.luckperms.sponge.service.model.LPPermissionDescription;
 import me.lucko.luckperms.sponge.service.model.LPPermissionService;
 import me.lucko.luckperms.sponge.service.model.LPSubject;
@@ -96,7 +96,7 @@ public final class DescriptionBuilder implements PermissionDescription.Builder, 
         LPSubjectCollection subjects = this.service.getCollection(PermissionService.SUBJECTS_ROLE_TEMPLATE);
         for (Map.Entry<String, Tristate> assignment : this.roles.entrySet()) {
             LPSubject roleSubject = subjects.loadSubject(assignment.getKey()).join();
-            roleSubject.getTransientSubjectData().setPermission(ContextSet.empty(), this.id, assignment.getValue());
+            roleSubject.getTransientSubjectData().setPermission(ImmutableContextSet.empty(), this.id, assignment.getValue());
         }
 
         // null stuff so this instance can be reused

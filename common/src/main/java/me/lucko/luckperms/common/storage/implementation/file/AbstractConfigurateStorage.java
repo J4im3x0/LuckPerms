@@ -30,10 +30,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.LogEntry;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.PlayerSaveResult;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.context.ImmutableContextSet;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
+import me.lucko.luckperms.api.node.types.MetaNode;
 import me.lucko.luckperms.common.actionlog.Log;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdate;
 import me.lucko.luckperms.common.context.ContextSetConfigurateSerializer;
@@ -161,7 +163,7 @@ public abstract class AbstractConfigurateStorage implements StorageImplementatio
     }
 
     @Override
-    public void logAction(LogEntry entry) {
+    public void logAction(Action entry) {
         this.actionLogger.logAction(entry);
     }
 
@@ -209,7 +211,7 @@ public abstract class AbstractConfigurateStorage implements StorageImplementatio
                 }
             } else {
                 if (this.plugin.getUserManager().shouldSave(user)) {
-                    user.clearNodes();
+                    user.clearEnduringNodes();
                     user.getPrimaryGroup().setStoredValue(null);
                     this.plugin.getUserManager().giveDefaultIfNeeded(user, false);
                 }
@@ -644,8 +646,8 @@ public abstract class AbstractConfigurateStorage implements StorageImplementatio
 
             // just add a string to the list.
             if (this.loader instanceof YamlLoader && isPlain(node)) {
-                if (n.isGroupNode()) {
-                    parentsSection.getAppendedNode().setValue(n.getGroupName());
+                if (n instanceof InheritanceNode) {
+                    parentsSection.getAppendedNode().setValue(((InheritanceNode) n).getGroupName());
                     continue;
                 }
                 if (!MetaType.ANY.matches(n)) {
@@ -673,27 +675,27 @@ public abstract class AbstractConfigurateStorage implements StorageImplementatio
                     default:
                         throw new AssertionError();
                 }
-            } else if (n.isMeta() && n.getValue()) {
+            } else if (n instanceof MetaNode && n.getValue()) {
                 // handle meta nodes
-                Map.Entry<String, String> meta = n.getMeta();
+                MetaNode meta = (MetaNode) n;
 
                 ConfigurationNode attributes = SimpleConfigurationNode.root();
-                attributes.getNode("value").setValue(meta.getValue());
+                attributes.getNode("value").setValue(meta.getMetaValue());
                 writeAttributesTo(attributes, node, false);
 
-                appendNode(metaSection, meta.getKey(), attributes, "key");
-            } else if (n.isGroupNode() && n.getValue()) {
+                appendNode(metaSection, meta.getMetaKey(), attributes, "key");
+            } else if (n instanceof InheritanceNode&& n.getValue()) {
                 // handle group nodes
                 ConfigurationNode attributes = SimpleConfigurationNode.root();
                 writeAttributesTo(attributes, node, false);
 
-                appendNode(parentsSection, n.getGroupName(), attributes, "group");
+                appendNode(parentsSection, ((InheritanceNode) n).getGroupName(), attributes, "group");
             } else {
                 // handle regular permissions and negated meta+prefixes+suffixes
                 ConfigurationNode attributes = SimpleConfigurationNode.root();
                 writeAttributesTo(attributes, node, true);
 
-                appendNode(permissionsSection, n.getPermission(), attributes, "permission");
+                appendNode(permissionsSection, n.getKey(), attributes, "permission");
             }
         }
 

@@ -39,7 +39,7 @@ import me.lucko.luckperms.common.locale.LocaleManager;
 import me.lucko.luckperms.common.locale.command.CommandSpec;
 import me.lucko.luckperms.common.locale.message.Message;
 import me.lucko.luckperms.common.model.PermissionHolder;
-import me.lucko.luckperms.common.node.model.NodeTypes;
+import me.lucko.luckperms.common.node.factory.NodeTypes;
 import me.lucko.luckperms.common.node.utils.MetaType;
 import me.lucko.luckperms.common.plugin.LuckPermsPlugin;
 import me.lucko.luckperms.common.sender.Sender;

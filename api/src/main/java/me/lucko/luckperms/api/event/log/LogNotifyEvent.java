@@ -26,7 +26,7 @@
 package me.lucko.luckperms.api.event.log;
 
 import me.lucko.luckperms.api.Entity;
-import me.lucko.luckperms.api.LogEntry;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.event.Cancellable;
 import me.lucko.luckperms.api.event.LuckPermsEvent;
 import me.lucko.luckperms.api.event.Param;
@@ -50,7 +50,8 @@ public interface LogNotifyEvent extends LuckPermsEvent, Cancellable {
      *
      * @return the log entry to be sent
      */
-    @NonNull @Param(0) LogEntry getEntry();
+    @NonNull @Param(0)
+    Action getEntry();
 
     /**
      * Gets where the log entry originated from.

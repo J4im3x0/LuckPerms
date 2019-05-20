@@ -29,10 +29,12 @@ import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 
 import me.lucko.luckperms.api.ChatMetaType;
-import me.lucko.luckperms.api.Contexts;
-import me.lucko.luckperms.api.FullySatisfiedContexts;
 import me.lucko.luckperms.api.caching.CachedData;
-import me.lucko.luckperms.api.caching.MetaContexts;
+import me.lucko.luckperms.api.caching.MetaData;
+import me.lucko.luckperms.api.caching.PermissionData;
+import me.lucko.luckperms.api.metastacking.MetaStackDefinition;
+import me.lucko.luckperms.api.query.DefaultQueryOptions;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.common.cacheddata.type.MetaAccumulator;
 import me.lucko.luckperms.common.cacheddata.type.MetaCache;
 import me.lucko.luckperms.common.cacheddata.type.PermissionCache;
@@ -60,40 +62,47 @@ public abstract class AbstractCachedData implements CachedData {
      * The plugin instance
      */
     private final LuckPermsPlugin plugin;
-    
-    /**
-     * The cache used for {@link PermissionCache} instances.
-     */
-    private final AsyncLoadingCache<Contexts, PermissionCache> permission = CaffeineFactory.newBuilder()
-            .expireAfterAccess(2, TimeUnit.MINUTES)
-            .buildAsync(new PermissionCacheLoader());
 
-    /**
-     * The cache used for {@link MetaCache} instances.
-     */
-    private final AsyncLoadingCache<MetaContexts, MetaCache> meta = CaffeineFactory.newBuilder()
-            .expireAfterAccess(2, TimeUnit.MINUTES)
-            .buildAsync(new MetaCacheLoader());
-
-    // cache the most recent lookup.
-    private RecentPermissionData recentPermissionData = null;
-    private RecentMetaData recentMetaData = null;
+    private final Permission permissionDataManager;
+    private final Meta metaDataManager;
 
     public AbstractCachedData(LuckPermsPlugin plugin) {
         this.plugin = plugin;
+        this.permissionDataManager = new Permission();
+        this.metaDataManager = new Meta();
     }
 
     public LuckPermsPlugin getPlugin() {
         return this.plugin;
     }
 
+    @Override
+    public @NonNull Manager<PermissionData> permissionData() {
+        return this.permissionDataManager;
+    }
+
+    @Override
+    public @NonNull Manager<MetaData> metaData() {
+        return this.metaDataManager;
+    }
+
+    @Override
+    public @NonNull PermissionCache getPermissionData(@NonNull QueryOptions queryOptions) {
+        return this.permissionDataManager.get(queryOptions);
+    }
+
+    @Override
+    public @NonNull MetaCache getMetaData(@NonNull QueryOptions queryOptions) {
+        return this.metaDataManager.get(queryOptions);
+    }
+
     /**
-     * Returns a {@link CacheMetadata} instance for the given {@link Contexts}.
+     * Returns a {@link CacheMetadata} instance for the given {@link QueryOptions}.
      * 
-     * @param contexts the contexts the cache is for
+     * @param queryOptions the query options the cache is for
      * @return the metadata instance
      */
-    protected abstract CacheMetadata getMetadataForContexts(Contexts contexts);
+    protected abstract CacheMetadata getMetadataForQueryOptions(QueryOptions queryOptions);
 
     /**
      * Gets the {@link CalculatorFactory} used to build {@link PermissionCalculator}s.
@@ -103,290 +112,238 @@ public abstract class AbstractCachedData implements CachedData {
     protected abstract CalculatorFactory getCalculatorFactory();
 
     /**
-     * Upgrades the given {@link Contexts} to a {@link MetaContexts} instance using the default settings.
-     * 
-     * @param contexts the contexts to upgrade
-     * @return a meta contexts instance
+     * Gets the default {@link MetaStackDefinition} for use if one wasn't specifically provided.
+     *
+     * @param type the type of meta stack
+     * @return a meta stack definition instance
      */
-    protected abstract MetaContexts getDefaultMetaContexts(Contexts contexts);
+    protected abstract MetaStackDefinition getDefaultMetaStackDefinition(ChatMetaType type);
 
     /**
-     * Resolves the owners permissions data according to the specification
-     * outlined by {@link FullySatisfiedContexts}.
+     * Resolves the owners permissions data for the given {@link QueryOptions}.
      * 
+     * @param queryOptions the query options
      * @return a map of permissions to back the {@link PermissionCache}
      */
-    protected abstract Map<String, Boolean> resolvePermissions();
+    protected abstract Map<String, Boolean> resolvePermissions(QueryOptions queryOptions);
 
     /**
-     * Resolves the owners permissions data in the given {@link Contexts}.
-     *
-     * @param contexts the contexts
-     * @return a map of permissions to back the {@link PermissionCache}
-     */
-    protected abstract Map<String, Boolean> resolvePermissions(Contexts contexts);
-
-    /**
-     * Resolves the owners meta data according to the specification
-     * outlined by {@link FullySatisfiedContexts}.
+     * Resolves the owners meta data for the given {@link QueryOptions}.
      *
      * @param accumulator the accumulator to add resolved meta to
+     * @param queryOptions the query options
      */
-    protected abstract void resolveMeta(MetaAccumulator accumulator);
-
-    /**
-     * Resolves the owners meta data in the given {@link Contexts}.
-     *
-     * @param accumulator the accumulator to add resolved meta to
-     * @param contexts the contexts
-     */
-    protected abstract void resolveMeta(MetaAccumulator accumulator, MetaContexts contexts);
+    protected abstract void resolveMeta(MetaAccumulator accumulator, QueryOptions queryOptions);
     
-    /**
-     * Calculates a {@link PermissionCache} instance.
-     *
-     * @param contexts the contexts to calculate in
-     * @param data an old data instance to try to reuse - ignored if null
-     * @return the calculated instance
-     */
-    private PermissionCache calculatePermissions(Contexts contexts, PermissionCache data) {
-        Objects.requireNonNull(contexts, "contexts");
+    private PermissionCache calculatePermissions(QueryOptions queryOptions, PermissionCache data) {
+        Objects.requireNonNull(queryOptions, "queryOptions");
 
         if (data == null) {
-            CacheMetadata metadata = getMetadataForContexts(contexts);
-            data = new PermissionCache(contexts, metadata, getCalculatorFactory());
+            CacheMetadata metadata = getMetadataForQueryOptions(queryOptions);
+            data = new PermissionCache(queryOptions, metadata, getCalculatorFactory());
         }
 
-        if (contexts == Contexts.allowAll()) {
-            data.setPermissions(resolvePermissions());
-        } else {
-            data.setPermissions(resolvePermissions(contexts));
-        }
-
+        data.setPermissions(resolvePermissions(queryOptions));
         return data;
     }
-
-    /**
-     * Calculates a {@link MetaCache} instance.
-     *
-     * @param contexts the contexts to calculate in
-     * @param data an old data instance to try to reuse - ignored if null
-     * @return the calculated instance
-     */
-    private MetaCache calculateMeta(MetaContexts contexts, MetaCache data) {
-        Objects.requireNonNull(contexts, "contexts");
+    
+    private MetaCache calculateMeta(QueryOptions queryOptions, MetaCache data) {
+        Objects.requireNonNull(queryOptions, "queryOptions");
 
         if (data == null) {
-            CacheMetadata metadata = getMetadataForContexts(contexts.getContexts());
-            data = new MetaCache(contexts, metadata);
+            CacheMetadata metadata = getMetadataForQueryOptions(queryOptions);
+            data = new MetaCache(queryOptions, metadata);
         }
 
-        MetaAccumulator accumulator = newAccumulator(contexts);
-        if (contexts.getContexts() == Contexts.allowAll()) {
-            resolveMeta(accumulator);
-        } else {
-            resolveMeta(accumulator, contexts);
-        }
+        MetaAccumulator accumulator = newAccumulator(queryOptions);
+        resolveMeta(accumulator, queryOptions);
         data.loadMeta(accumulator);
 
         return data;
     }
 
     @Override
-    public final @NonNull PermissionCache getPermissionData(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-
-        RecentPermissionData recent = this.recentPermissionData;
-        if (recent != null && contexts.equals(recent.contexts)) {
-            return recent.permissionData;
-        }
-
-        PermissionCache data = this.permission.synchronous().get(contexts);
-        this.recentPermissionData = new RecentPermissionData(contexts, data);
-
-        //noinspection ConstantConditions
-        return data;
-    }
-
-    @Override
-    public final @NonNull MetaCache getMetaData(@NonNull MetaContexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-
-        RecentMetaData recent = this.recentMetaData;
-        if (recent != null && contexts.equals(recent.contexts)) {
-            return recent.metaData;
-        }
-
-        MetaCache data = this.meta.synchronous().get(contexts);
-        this.recentMetaData = new RecentMetaData(contexts, data);
-
-        //noinspection ConstantConditions
-        return data;
-    }
-
-    @Override
-    public final @NonNull MetaCache getMetaData(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        return getMetaData(getDefaultMetaContexts(contexts));
-    }
-
-    @Override
-    public final @NonNull PermissionCache calculatePermissions(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        return calculatePermissions(contexts, null);
-    }
-
-    @Override
-    public final @NonNull MetaCache calculateMeta(@NonNull MetaContexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        return calculateMeta(contexts, null);
-    }
-
-    @Override
-    public final @NonNull MetaCache calculateMeta(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        return calculateMeta(getDefaultMetaContexts(contexts));
-    }
-
-    @Override
-    public final void recalculatePermissions(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        this.permission.synchronous().refresh(contexts);
-        this.recentPermissionData = null;
-    }
-
-    @Override
-    public final void recalculateMeta(@NonNull MetaContexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        this.meta.synchronous().refresh(contexts);
-        this.recentMetaData = null;
-    }
-
-    @Override
-    public final void recalculateMeta(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        recalculateMeta(getDefaultMetaContexts(contexts));
-    }
-
-    @Override
-    public final @NonNull CompletableFuture<PermissionCache> reloadPermissions(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-
-        // get the previous value - to use when recalculating
-        CompletableFuture<PermissionCache> previous = this.permission.getIfPresent(contexts);
-
-        // invalidate any previous setting
-        this.permission.synchronous().invalidate(contexts);
-        this.recentPermissionData = null;
-
-        // if the previous value is already calculated, use it when recalculating.
-        PermissionCache value = getIfReady(previous);
-        if (value != null) {
-            return this.permission.get(contexts, c -> calculatePermissions(c, value));
-        }
-
-        // otherwise, just calculate a new value
-        return this.permission.get(contexts);
-    }
-
-    @Override
-    public final @NonNull CompletableFuture<MetaCache> reloadMeta(@NonNull MetaContexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-
-        // get the previous value - to use when recalculating
-        CompletableFuture<MetaCache> previous = this.meta.getIfPresent(contexts);
-
-        // invalidate any previous setting
-        this.meta.synchronous().invalidate(contexts);
-        this.recentMetaData = null;
-
-        // if the previous value is already calculated, use it when recalculating.
-        MetaCache value = getIfReady(previous);
-        if (value != null) {
-            return this.meta.get(contexts, c -> calculateMeta(c, value));
-        }
-
-        // otherwise, just calculate a new value
-        return this.meta.get(contexts);
-    }
-
-    @Override
-    public final @NonNull CompletableFuture<MetaCache> reloadMeta(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        return reloadMeta(getDefaultMetaContexts(contexts));
-    }
-
-    @Override
-    public final void recalculatePermissions() {
-        Set<Contexts> keys = this.permission.synchronous().asMap().keySet();
-        keys.forEach(this::recalculatePermissions);
-    }
-
-    @Override
-    public final void recalculateMeta() {
-        Set<MetaContexts> keys = this.meta.synchronous().asMap().keySet();
-        keys.forEach(this::recalculateMeta);
-    }
-
-    @Override
-    public final @NonNull CompletableFuture<Void> reloadPermissions() {
-        Set<Contexts> keys = this.permission.synchronous().asMap().keySet();
-        return CompletableFuture.allOf(keys.stream().map(this::reloadPermissions).toArray(CompletableFuture[]::new));
-    }
-
-    @Override
-    public final @NonNull CompletableFuture<Void> reloadMeta() {
-        Set<MetaContexts> keys = this.meta.synchronous().asMap().keySet();
-        return CompletableFuture.allOf(keys.stream().map(this::reloadMeta).toArray(CompletableFuture[]::new));
-    }
-
-    @Override
-    public final void invalidatePermissions(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        this.permission.synchronous().invalidate(contexts);
-        this.recentPermissionData = null;
-    }
-
-    @Override
-    public final void invalidateMeta(@NonNull MetaContexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        this.meta.synchronous().invalidate(contexts);
-        this.recentMetaData = null;
-    }
-
-    @Override
-    public final void invalidateMeta(@NonNull Contexts contexts) {
-        Objects.requireNonNull(contexts, "contexts");
-        this.meta.synchronous().invalidate(getDefaultMetaContexts(contexts));
-        this.recentMetaData = null;
-    }
-
-    @Override
-    public final void invalidatePermissions() {
-        this.permission.synchronous().invalidateAll();
-        this.recentPermissionData = null;
-    }
-
-    @Override
-    public final void invalidateMeta() {
-        this.meta.synchronous().invalidateAll();
-        this.recentMetaData = null;
-    }
-
-    @Override
     public final void invalidate() {
-        invalidatePermissions();
-        invalidateMeta();
+        this.permissionDataManager.invalidate();
+        this.metaDataManager.invalidate();
     }
 
     @Override
     public final void invalidatePermissionCalculators() {
-        this.permission.synchronous().asMap().values().forEach(PermissionCache::invalidateCache);
+        this.permissionDataManager.cache.synchronous().asMap().values().forEach(PermissionCache::invalidateCache);
     }
 
     public final void performCacheCleanup() {
-        this.permission.synchronous().cleanUp();
-        this.meta.synchronous().cleanUp();
+        this.permissionDataManager.cache.synchronous().cleanUp();
+        this.metaDataManager.cache.synchronous().cleanUp();
+    }
+
+    private final class Permission implements Manager<PermissionData> {
+        private final AsyncLoadingCache<QueryOptions, PermissionCache> cache = CaffeineFactory.newBuilder()
+                .expireAfterAccess(2, TimeUnit.MINUTES)
+                .buildAsync(new PermissionCacheLoader());
+
+        // cache the most recent lookup.
+        private RecentPermissionData recentPermissionData = null;
+
+        @Override
+        public @NonNull PermissionCache get(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+
+            RecentPermissionData recent = this.recentPermissionData;
+            if (recent != null && queryOptions.equals(recent.queryOptions)) {
+                return recent.permissionData;
+            }
+
+            PermissionCache data = this.cache.synchronous().get(queryOptions);
+            this.recentPermissionData = new RecentPermissionData(queryOptions, data);
+
+            //noinspection ConstantConditions
+            return data;
+        }
+
+        @Override
+        public @NonNull PermissionCache calculate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            return calculatePermissions(queryOptions, null);
+        }
+
+        @Override
+        public void recalculate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            this.cache.synchronous().refresh(queryOptions);
+            this.recentPermissionData = null;
+        }
+
+        @Override
+        public @NonNull CompletableFuture<? extends PermissionCache> reload(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+
+            // get the previous value - to use when recalculating
+            CompletableFuture<PermissionCache> previous = this.cache.getIfPresent(queryOptions);
+
+            // invalidate any previous setting
+            this.cache.synchronous().invalidate(queryOptions);
+            this.recentPermissionData = null;
+
+            // if the previous value is already calculated, use it when recalculating.
+            PermissionCache value = getIfReady(previous);
+            if (value != null) {
+                return this.cache.get(queryOptions, c -> calculatePermissions(c, value));
+            }
+
+            // otherwise, just calculate a new value
+            return this.cache.get(queryOptions);
+        }
+
+        @Override
+        public void recalculate() {
+            Set<QueryOptions> keys = this.cache.synchronous().asMap().keySet();
+            keys.forEach(this::recalculate);
+        }
+
+        @Override
+        public @NonNull CompletableFuture<Void> reload() {
+            Set<QueryOptions> keys = this.cache.synchronous().asMap().keySet();
+            return CompletableFuture.allOf(keys.stream().map(this::reload).toArray(CompletableFuture[]::new));
+        }
+
+        @Override
+        public void invalidate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            this.cache.synchronous().invalidate(queryOptions);
+            this.recentPermissionData = null;
+        }
+
+        @Override
+        public void invalidate() {
+            this.cache.synchronous().invalidateAll();
+            this.recentPermissionData = null;
+        }
+    }
+
+    private final class Meta implements Manager<MetaData> {
+        private final AsyncLoadingCache<QueryOptions, MetaCache> cache = CaffeineFactory.newBuilder()
+                .expireAfterAccess(2, TimeUnit.MINUTES)
+                .buildAsync(new MetaCacheLoader());
+
+        // cache the most recent lookup.
+        private RecentMetaData recentMetaData = null;
+
+        @Override
+        public @NonNull MetaCache get(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+
+            RecentMetaData recent = this.recentMetaData;
+            if (recent != null && queryOptions.equals(recent.queryOptions)) {
+                return recent.metaData;
+            }
+
+            MetaCache data = this.cache.synchronous().get(queryOptions);
+            this.recentMetaData = new RecentMetaData(queryOptions, data);
+
+            //noinspection ConstantConditions
+            return data;
+        }
+
+        @Override
+        public @NonNull MetaCache calculate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            return calculateMeta(queryOptions, null);
+        }
+
+        @Override
+        public void recalculate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            this.cache.synchronous().refresh(queryOptions);
+            this.recentMetaData = null;
+        }
+
+        @Override
+        public @NonNull CompletableFuture<? extends MetaCache> reload(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+
+            // get the previous value - to use when recalculating
+            CompletableFuture<MetaCache> previous = this.cache.getIfPresent(queryOptions);
+
+            // invalidate any previous setting
+            this.cache.synchronous().invalidate(queryOptions);
+            this.recentMetaData = null;
+
+            // if the previous value is already calculated, use it when recalculating.
+            MetaCache value = getIfReady(previous);
+            if (value != null) {
+                return this.cache.get(queryOptions, c -> calculateMeta(c, value));
+            }
+
+            // otherwise, just calculate a new value
+            return this.cache.get(queryOptions);
+        }
+
+        @Override
+        public void recalculate() {
+            Set<QueryOptions> keys = this.cache.synchronous().asMap().keySet();
+            keys.forEach(this::recalculate);
+        }
+
+        @Override
+        public @NonNull CompletableFuture<Void> reload() {
+            Set<QueryOptions> keys = this.cache.synchronous().asMap().keySet();
+            return CompletableFuture.allOf(keys.stream().map(this::reload).toArray(CompletableFuture[]::new));
+        }
+
+        @Override
+        public void invalidate(@NonNull QueryOptions queryOptions) {
+            Objects.requireNonNull(queryOptions, "queryOptions");
+            this.cache.synchronous().invalidate(queryOptions);
+            this.recentMetaData = null;
+        }
+
+        @Override
+        public void invalidate() {
+            this.cache.synchronous().invalidateAll();
+            this.recentMetaData = null;
+        }
     }
 
     private static boolean isReady(@Nullable CompletableFuture<?> future) {
@@ -400,53 +357,64 @@ public abstract class AbstractCachedData implements CachedData {
         return isReady(future) ? future.join() : null;
     }
 
-    private final class PermissionCacheLoader implements CacheLoader<Contexts, PermissionCache> {
+    private final class PermissionCacheLoader implements CacheLoader<QueryOptions, PermissionCache> {
         @Override
-        public PermissionCache load(@NonNull Contexts contexts) {
-            return calculatePermissions(contexts);
+        public PermissionCache load(@NonNull QueryOptions queryOptions) {
+            return calculatePermissions(queryOptions, null);
         }
 
         @Override
-        public PermissionCache reload(@NonNull Contexts contexts, @NonNull PermissionCache oldData) {
-            return calculatePermissions(contexts, oldData);
-        }
-    }
-
-    private final class MetaCacheLoader implements CacheLoader<MetaContexts, MetaCache> {
-        @Override
-        public MetaCache load(@NonNull MetaContexts contexts) {
-            return calculateMeta(contexts);
-        }
-
-        @Override
-        public MetaCache reload(@NonNull MetaContexts contexts, @NonNull MetaCache oldData) {
-            return calculateMeta(contexts, oldData);
+        public PermissionCache reload(@NonNull QueryOptions queryOptions, @NonNull PermissionCache oldData) {
+            return calculatePermissions(queryOptions, oldData);
         }
     }
 
-    private static MetaAccumulator newAccumulator(MetaContexts contexts) {
+    private final class MetaCacheLoader implements CacheLoader<QueryOptions, MetaCache> {
+        @Override
+        public MetaCache load(@NonNull QueryOptions queryOptions) {
+            return calculateMeta(queryOptions, null);
+        }
+
+        @Override
+        public MetaCache reload(@NonNull QueryOptions queryOptions, @NonNull MetaCache oldData) {
+            return calculateMeta(queryOptions, oldData);
+        }
+    }
+
+    private MetaStackDefinition getMetaStackDefinition(QueryOptions queryOptions, ChatMetaType type) {
+        MetaStackDefinition stack = queryOptions.option(type == ChatMetaType.PREFIX ?
+                DefaultQueryOptions.prefixStackDefinitionKey() :
+                DefaultQueryOptions.suffixStackDefinitionKey()
+        ).orElse(null);
+        if (stack == null) {
+            stack = getDefaultMetaStackDefinition(type);
+        }
+        return stack;
+    }
+    
+    private MetaAccumulator newAccumulator(QueryOptions queryOptions) {
         return new MetaAccumulator(
-                new SimpleMetaStack(contexts.getPrefixStackDefinition(), ChatMetaType.PREFIX),
-                new SimpleMetaStack(contexts.getSuffixStackDefinition(), ChatMetaType.SUFFIX)
+                new SimpleMetaStack(getMetaStackDefinition(queryOptions, ChatMetaType.PREFIX), ChatMetaType.PREFIX),
+                new SimpleMetaStack(getMetaStackDefinition(queryOptions, ChatMetaType.SUFFIX), ChatMetaType.SUFFIX)
         );
     }
 
     private static final class RecentPermissionData {
-        final Contexts contexts;
+        final QueryOptions queryOptions;
         final PermissionCache permissionData;
 
-        RecentPermissionData(Contexts contexts, PermissionCache permissionData) {
-            this.contexts = contexts;
+        RecentPermissionData(QueryOptions queryOptions, PermissionCache permissionData) {
+            this.queryOptions = queryOptions;
             this.permissionData = permissionData;
         }
     }
 
     private static final class RecentMetaData {
-        final MetaContexts contexts;
+        final QueryOptions queryOptions;
         final MetaCache metaData;
 
-        RecentMetaData(MetaContexts contexts, MetaCache metaData) {
-            this.contexts = contexts;
+        RecentMetaData(QueryOptions queryOptions, MetaCache metaData) {
+            this.queryOptions = queryOptions;
             this.metaData = metaData;
         }
     }

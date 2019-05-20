@@ -88,10 +88,10 @@ public class MetaAddTempChatMeta extends SharedSubCommand {
             return CommandResult.NO_PERMISSION;
         }
 
-        TemporaryDataMutateResult ret = holder.setPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).setExpiry(duration).withExtraContext(context).build(), modifier);
+        TemporaryDataMutateResult ret = holder.setPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).expiry(duration).withContext(context).build(), modifier);
 
         if (ret.getResult().asBoolean()) {
-            duration = ret.getMergedNode().getExpiryUnixTime();
+            duration = ret.getMergedNode().getExpiry().getEpochSecond();
 
             TextComponent.Builder builder = Message.ADD_TEMP_CHATMETA_SUCCESS.asComponent(plugin.getLocaleManager(), holder.getFormattedDisplayName(), this.type.name().toLowerCase(), meta, priority, DurationFormatter.LONG.formatDateDiff(duration), MessageUtils.contextSetToString(plugin.getLocaleManager(), context)).toBuilder();
             HoverEvent event = HoverEvent.showText(TextUtils.fromLegacy(

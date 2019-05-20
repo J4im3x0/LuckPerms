@@ -28,10 +28,10 @@ package me.lucko.luckperms.common.storage.implementation.sql;
 import com.google.common.collect.Maps;
 import com.google.gson.reflect.TypeToken;
 
-import me.lucko.luckperms.api.HeldPermission;
-import me.lucko.luckperms.api.LogEntry;
-import me.lucko.luckperms.api.Node;
+import me.lucko.luckperms.api.HeldNode;
 import me.lucko.luckperms.api.PlayerSaveResult;
+import me.lucko.luckperms.api.actionlog.Action;
+import me.lucko.luckperms.api.node.Node;
 import me.lucko.luckperms.common.actionlog.ExtendedLogEntry;
 import me.lucko.luckperms.common.actionlog.Log;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdate;
@@ -263,7 +263,7 @@ public class SqlStorage implements StorageImplementation {
     }
 
     @Override
-    public void logAction(LogEntry entry) throws SQLException {
+    public void logAction(Action entry) throws SQLException {
         try (Connection c = this.connectionFactory.getConnection()) {
             try (PreparedStatement ps = c.prepareStatement(this.statementProcessor.apply(ACTION_INSERT))) {
                 ps.setLong(1, entry.getTimestamp());
@@ -290,7 +290,7 @@ public class SqlStorage implements StorageImplementation {
                                 .timestamp(rs.getLong("time"))
                                 .actor(UUID.fromString(rs.getString("actor_uuid")))
                                 .actorName(rs.getString("actor_name"))
-                                .type(LogEntry.Type.valueOf(rs.getString("type").toCharArray()[0]))
+                                .type(Action.Type.valueOf(rs.getString("type").toCharArray()[0]))
                                 .acted(actedUuid.equals("null") ? null : UUID.fromString(actedUuid))
                                 .actedName(rs.getString("acted_name"))
                                 .action(rs.getString("action"))
@@ -388,7 +388,7 @@ public class SqlStorage implements StorageImplementation {
             } else {
                 // User has no data in storage.
                 if (this.plugin.getUserManager().shouldSave(user)) {
-                    user.clearNodes();
+                    user.clearEnduringNodes();
                     user.getPrimaryGroup().setStoredValue(null);
                     this.plugin.getUserManager().giveDefaultIfNeeded(user, false);
                 }
@@ -532,11 +532,11 @@ public class SqlStorage implements StorageImplementation {
     }
 
     @Override
-    public List<HeldPermission<UUID>> getUsersWithPermission(Constraint constraint) throws SQLException {
+    public List<HeldNode<UUID>> getUsersWithPermission(Constraint constraint) throws SQLException {
         PreparedStatementBuilder builder = new PreparedStatementBuilder().append(USER_PERMISSIONS_SELECT_PERMISSION);
         constraint.appendSql(builder, "permission");
 
-        List<HeldPermission<UUID>> held = new ArrayList<>();
+        List<HeldNode<UUID>> held = new ArrayList<>();
         try (Connection c = this.connectionFactory.getConnection()) {
             try (PreparedStatement ps = builder.build(c, this.statementProcessor)) {
                 try (ResultSet rs = ps.executeQuery()) {
@@ -632,7 +632,7 @@ public class SqlStorage implements StorageImplementation {
                 Set<Node> nodes = data.stream().map(NodeDataContainer::toNode).collect(Collectors.toSet());
                 group.setNodes(NodeMapType.ENDURING, nodes);
             } else {
-                group.clearNodes();
+                group.clearEnduringNodes();
             }
         } finally {
             group.getIoLock().unlock();
@@ -778,11 +778,11 @@ public class SqlStorage implements StorageImplementation {
     }
 
     @Override
-    public List<HeldPermission<String>> getGroupsWithPermission(Constraint constraint) throws SQLException {
+    public List<HeldNode<String>> getGroupsWithPermission(Constraint constraint) throws SQLException {
         PreparedStatementBuilder builder = new PreparedStatementBuilder().append(GROUP_PERMISSIONS_SELECT_PERMISSION);
         constraint.appendSql(builder, "permission");
 
-        List<HeldPermission<String>> held = new ArrayList<>();
+        List<HeldNode<String>> held = new ArrayList<>();
         try (Connection c = this.connectionFactory.getConnection()) {
             try (PreparedStatement ps = builder.build(c, this.statementProcessor)) {
                 try (ResultSet rs = ps.executeQuery()) {

@@ -25,16 +25,12 @@
 
 package me.lucko.luckperms.common.node.model;
 
-import me.lucko.luckperms.api.HeldPermission;
-import me.lucko.luckperms.api.Node;
-import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.HeldNode;
+import me.lucko.luckperms.api.node.Node;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 
-import java.util.Optional;
-import java.util.OptionalLong;
-
-public final class NodeHeldPermission<T extends Comparable<T>> implements HeldPermission<T> {
+public final class NodeHeldPermission<T extends Comparable<T>> implements HeldNode<T> {
     public static <T extends Comparable<T>> NodeHeldPermission<T> of(T holder, NodeDataContainer node) {
         return of(holder, node.toNode());
     }
@@ -52,47 +48,13 @@ public final class NodeHeldPermission<T extends Comparable<T>> implements HeldPe
     }
 
     @Override
-    public @NonNull String getPermission() {
-        return this.node.getPermission();
-    }
-
-    @Override
-    public boolean getValue() {
-        return this.node.getValue();
-    }
-
-    @Override
-    public @NonNull Optional<String> getServer() {
-        return this.node.getServer();
-    }
-
-    @Override
-    public @NonNull Optional<String> getWorld() {
-        return this.node.getWorld();
-    }
-
-    @Override
-    public @NonNull OptionalLong getExpiry() {
-        return this.node.isTemporary() ? OptionalLong.of(this.node.getExpiryUnixTime()) : OptionalLong.empty();
-    }
-
-    @Override
-    public @NonNull ContextSet getContexts() {
-        return this.node.getContexts();
-    }
-
-    @Override
-    public @NonNull Node asNode() {
+    public @NonNull Node getNode() {
         return this.node;
     }
 
     @Override
     public @NonNull T getHolder() {
         return this.holder;
-    }
-
-    public Node getNode() {
-        return this.node;
     }
 
     @Override

@@ -25,7 +25,7 @@
 
 package me.lucko.luckperms.api.event.log;
 
-import me.lucko.luckperms.api.LogEntry;
+import me.lucko.luckperms.api.actionlog.Action;
 import me.lucko.luckperms.api.event.Cancellable;
 import me.lucko.luckperms.api.event.LuckPermsEvent;
 import me.lucko.luckperms.api.event.Param;
@@ -42,7 +42,8 @@ public interface LogBroadcastEvent extends LuckPermsEvent, Cancellable {
      *
      * @return the log entry to be broadcasted
      */
-    @NonNull @Param(0) LogEntry getEntry();
+    @NonNull @Param(0)
+    Action getEntry();
 
     /**
      * Gets where the log entry originated from.

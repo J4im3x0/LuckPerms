@@ -27,13 +27,15 @@ package me.lucko.luckperms.bukkit.vault;
 
 import com.google.common.base.Preconditions;
 
-import me.lucko.luckperms.api.Contexts;
-import me.lucko.luckperms.api.LookupSetting;
-import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.Tristate;
 import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.context.DefaultContextKeys;
 import me.lucko.luckperms.api.context.MutableContextSet;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
+import me.lucko.luckperms.api.query.Flag;
+import me.lucko.luckperms.api.query.QueryOptions;
 import me.lucko.luckperms.bukkit.LPBukkitPlugin;
+import me.lucko.luckperms.bukkit.context.BukkitContextManager;
 import me.lucko.luckperms.common.cacheddata.type.PermissionCache;
 import me.lucko.luckperms.common.calculator.processor.MapProcessor;
 import me.lucko.luckperms.common.calculator.result.TristateResult;
@@ -187,14 +189,14 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
         Objects.requireNonNull(permission, "permission");
 
         PermissionHolder user = lookupUser(uuid);
-        Contexts contexts = contextForLookup(uuid, world);
-        PermissionCache permissionData = user.getCachedData().getPermissionData(contexts);
+        QueryOptions queryOptions = getQueryOptions(uuid, world);
+        PermissionCache permissionData = user.getCachedData().getPermissionData(queryOptions);
 
         Tristate result = permissionData.getPermissionValue(permission, PermissionCheckEvent.Origin.THIRD_PARTY_API).result();
         if (log()) {
-            logMsg("#userHasPermission: %s - %s - %s - %s", user.getPlainDisplayName(), contexts.getContexts().toMultimap(), permission, result);
+            logMsg("#userHasPermission: %s - %s - %s - %s", user.getPlainDisplayName(), queryOptions.context().toMultimap(), permission, result);
         }
-        return result != Tristate.UNDEFINED ? result.asBoolean() : org.bukkit.permissions.Permission.DEFAULT_PERMISSION.getValue(contexts.hasSetting(LookupSetting.IS_OP));
+        return result != Tristate.UNDEFINED ? result.asBoolean() : org.bukkit.permissions.Permission.DEFAULT_PERMISSION.getValue(queryOptions.option(BukkitContextManager.OP_OPTION).orElse(false));
     }
 
     @Override
@@ -227,12 +229,12 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
         Objects.requireNonNull(group, "group");
 
         PermissionHolder user = lookupUser(uuid);
-        Contexts contexts = contextForLookup(uuid, world);
-        PermissionCache permissionData = user.getCachedData().getPermissionData(contexts);
+        QueryOptions queryOptions = getQueryOptions(uuid, world);
+        PermissionCache permissionData = user.getCachedData().getPermissionData(queryOptions);
 
         TristateResult result = permissionData.getPermissionValue(NodeFactory.groupNode(rewriteGroupName(group)), PermissionCheckEvent.Origin.THIRD_PARTY_API);
         if (log()) {
-            logMsg("#userInGroup: %s - %s - %s - %s", user.getPlainDisplayName(), contexts.getContexts().toMultimap(), group, result);
+            logMsg("#userInGroup: %s - %s - %s - %s", user.getPlainDisplayName(), queryOptions.context().toMultimap(), group, result);
         }
         return result.processorClass() == MapProcessor.class && result.result().asBoolean();
     }
@@ -256,10 +258,11 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
         Objects.requireNonNull(uuid, "uuid");
 
         PermissionHolder user = lookupUser(uuid);
-        ContextSet contexts = contextForLookup(uuid, world).getContexts();
+        ContextSet contexts = getQueryOptions(uuid, world).context();
 
         String[] ret = user.enduringData().immutable().values().stream()
-                .filter(Node::isGroupNode)
+                .filter(n -> n instanceof InheritanceNode)
+                .map(n -> ((InheritanceNode) n))
                 .filter(n -> n.shouldApplyWithContext(contexts))
                 .map(n -> {
                     Group group = this.plugin.getGroupManager().getIfLoaded(n.getGroupName());
@@ -291,7 +294,7 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
             value = group.getPlainDisplayName();
         }
 
-        this.plugin.getVerboseHandler().offerMetaCheckEvent(MetaCheckEvent.Origin.THIRD_PARTY_API, user.getPlainDisplayName(), ContextSet.empty(), "primarygroup", value);
+        this.plugin.getVerboseHandler().offerMetaCheckEvent(MetaCheckEvent.Origin.THIRD_PARTY_API, user.getPlainDisplayName(), QueryOptions.defaultContextualOptions(), "primarygroup", value);
 
         if (log()) {
             logMsg("#userGetPrimaryGroup: %s - %s - %s", user.getPlainDisplayName(), world, value);
@@ -310,12 +313,12 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
             return false;
         }
 
-        Contexts contexts = contextForLookup(null, world);
-        PermissionCache permissionData = group.getCachedData().getPermissionData(contexts);
+        QueryOptions queryOptions = getQueryOptions(null, world);
+        PermissionCache permissionData = group.getCachedData().getPermissionData(queryOptions);
 
         Tristate result = permissionData.getPermissionValue(permission, PermissionCheckEvent.Origin.THIRD_PARTY_API).result();
         if (log()) {
-            logMsg("#groupHasPermission: %s - %s - %s - %s", group.getName(), contexts.getContexts().toMultimap(), permission, result);
+            logMsg("#groupHasPermission: %s - %s - %s - %s", group.getName(), queryOptions.context().toMultimap(), permission, result);
         }
         return result.asBoolean();
     }
@@ -376,12 +379,12 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
     }
 
     // utility method for getting a contexts instance for a given vault lookup.
-    Contexts contextForLookup(@Nullable UUID uuid, @Nullable String world) {
+    QueryOptions getQueryOptions(@Nullable UUID uuid, @Nullable String world) {
         MutableContextSet context;
 
         Player player = Optional.ofNullable(uuid).flatMap(u -> this.plugin.getBootstrap().getPlayer(u)).orElse(null);
         if (player != null) {
-            context = this.plugin.getContextManager().getApplicableContext(player).mutableCopy();
+            context = this.plugin.getContextManager().getContext(player).mutableCopy();
         } else {
             context = this.plugin.getContextManager().getStaticContext().mutableCopy();
         }
@@ -392,19 +395,19 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
         // if world is not null, we want to do a lookup in that specific world
         if (world != null && !world.isEmpty() && !world.equalsIgnoreCase(playerWorld)) {
             // remove already accumulated worlds
-            context.removeAll(Contexts.WORLD_KEY);
+            context.removeAll(DefaultContextKeys.WORLD_KEY);
             // add the vault world
-            context.add(Contexts.WORLD_KEY, world.toLowerCase());
+            context.add(DefaultContextKeys.WORLD_KEY, world.toLowerCase());
         }
 
         // if we're using a special vault server
         if (useVaultServer()) {
             // remove the normal server context from the set
-            context.remove(Contexts.SERVER_KEY, getServer());
+            context.remove(DefaultContextKeys.SERVER_KEY, getServer());
 
             // add the vault specific server
             if (!getVaultServer().equals("global")) {
-                context.add(Contexts.SERVER_KEY, getVaultServer());
+                context.add(DefaultContextKeys.SERVER_KEY, getVaultServer());
             }
         }
 
@@ -415,7 +418,13 @@ public class LuckPermsVaultPermission extends AbstractVaultPermission {
             op = this.plugin.getConfiguration().get(ConfigKeys.VAULT_NPC_OP_STATUS);
         }
 
-        return Contexts.of(context, isIncludeGlobal(), true, true, true, true, op);
+        QueryOptions.Builder builder = QueryOptions.defaultContextualOptions().toBuilder();
+        builder.context(context);
+        builder.flag(Flag.INCLUDE_NODES_SET_WITHOUT_SERVER, isIncludeGlobal());
+        if (op) {
+            builder.option(BukkitContextManager.OP_OPTION, true);
+        }
+        return builder.build();
     }
 
     // utility methods for modifying the state of PermissionHolders

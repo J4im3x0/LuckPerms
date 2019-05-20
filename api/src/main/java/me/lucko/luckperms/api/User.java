@@ -86,23 +86,4 @@ public interface User extends PermissionHolder {
     @Override
     @NonNull UserData getCachedData();
 
-    /**
-     * Refresh and re-assign the users permissions.
-     *
-     * @deprecated Calling this method is no longer necessary. Permissions data is now refreshed on
-     * demand, as changes are made. Consider use of {@link #refreshCachedData()}
-     * instead. This method is now implemented as a no-op.
-     */
-    @Deprecated
-    void refreshPermissions();
-
-    /**
-     * Pre-calculates some values in the user's data cache.
-     *
-     * @since 2.17
-     * @deprecated Use of this method is no longer necessary. It is implemented as a no-op.
-     */
-    @Deprecated
-    void setupDataCache();
-
 }

@@ -43,13 +43,6 @@ import java.util.SortedMap;
 public interface MetaData extends CachedDataContainer {
 
     /**
-     * Gets the contexts this container is holding data for.
-     *
-     * @return the contexts this container is caching
-     */
-    @NonNull MetaContexts getMetaContexts();
-
-    /**
      * Gets an immutable copy of the meta this user has.
      *
      * <p>A list multimap is used because when inherited values are included, each key can be

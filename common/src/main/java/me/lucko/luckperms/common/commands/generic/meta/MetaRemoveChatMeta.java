@@ -85,11 +85,11 @@ public class MetaRemoveChatMeta extends SharedSubCommand {
 
         // Handle bulk removal
         if (meta.equalsIgnoreCase("null") || meta.equals("*")) {
-            holder.removeIf(n ->
+            holder.removeIfEnduring(n ->
                     this.type.matches(n) &&
                             this.type.getEntry(n).getKey() == priority &&
-                    !n.isTemporary() &&
-                    n.getFullContexts().makeImmutable().equals(context.makeImmutable())
+                    !n.hasExpiry() &&
+                    n.getContexts().makeImmutable().equals(context.makeImmutable())
             );
             Message.BULK_REMOVE_CHATMETA_SUCCESS.send(sender, holder.getFormattedDisplayName(), this.type.name().toLowerCase(), priority, MessageUtils.contextSetToString(plugin.getLocaleManager(), context));
 
@@ -101,7 +101,7 @@ public class MetaRemoveChatMeta extends SharedSubCommand {
             return CommandResult.SUCCESS;
         }
 
-        DataMutateResult result = holder.unsetPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).withExtraContext(context).build());
+        DataMutateResult result = holder.unsetPermission(NodeFactory.buildChatMetaNode(this.type, priority, meta).withContext(context).build());
 
         if (result.asBoolean()) {
             TextComponent.Builder builder = Message.REMOVE_CHATMETA_SUCCESS.asComponent(plugin.getLocaleManager(), holder.getFormattedDisplayName(), this.type.name().toLowerCase(), meta, priority, MessageUtils.contextSetToString(plugin.getLocaleManager(), context)).toBuilder();

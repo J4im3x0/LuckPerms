@@ -25,7 +25,7 @@
 
 package me.lucko.luckperms.common.storage.implementation.file;
 
-import me.lucko.luckperms.api.HeldPermission;
+import me.lucko.luckperms.api.HeldNode;
 import me.lucko.luckperms.common.bulkupdate.BulkUpdate;
 import me.lucko.luckperms.common.bulkupdate.comparison.Constraint;
 import me.lucko.luckperms.common.model.User;
@@ -253,8 +253,8 @@ public class SeparatedConfigurateStorage extends AbstractConfigurateStorage {
     }
 
     @Override
-    public List<HeldPermission<UUID>> getUsersWithPermission(Constraint constraint) throws Exception {
-        List<HeldPermission<UUID>> held = new ArrayList<>();
+    public List<HeldNode<UUID>> getUsersWithPermission(Constraint constraint) throws Exception {
+        List<HeldNode<UUID>> held = new ArrayList<>();
         try (Stream<Path> stream = Files.list(getDirectory(StorageLocation.USER))) {
             stream.filter(getFileTypeFilter())
                     .forEach(file -> {
@@ -309,8 +309,8 @@ public class SeparatedConfigurateStorage extends AbstractConfigurateStorage {
     }
 
     @Override
-    public List<HeldPermission<String>> getGroupsWithPermission(Constraint constraint) throws Exception {
-        List<HeldPermission<String>> held = new ArrayList<>();
+    public List<HeldNode<String>> getGroupsWithPermission(Constraint constraint) throws Exception {
+        List<HeldNode<String>> held = new ArrayList<>();
         try (Stream<Path> stream = Files.list(getDirectory(StorageLocation.GROUP))) {
             stream.filter(getFileTypeFilter())
                     .forEach(file -> {

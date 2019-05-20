@@ -28,7 +28,7 @@ package me.lucko.luckperms.common.api.implementation;
 import com.google.common.base.Preconditions;
 
 import me.lucko.luckperms.api.DataMutateResult;
-import me.lucko.luckperms.api.StandardNodeEquality;
+import me.lucko.luckperms.api.NodeEqualityPredicate;
 import me.lucko.luckperms.api.caching.UserData;
 import me.lucko.luckperms.common.model.NodeMapType;
 import me.lucko.luckperms.common.model.User;
@@ -79,7 +79,7 @@ public class ApiUser extends ApiPermissionHolder implements me.lucko.luckperms.a
             return DataMutateResult.ALREADY_HAS;
         }
 
-        if (!this.handle.hasPermission(NodeMapType.ENDURING, NodeFactory.buildGroupNode(group.toLowerCase()).build(), StandardNodeEquality.IGNORE_EXPIRY_TIME_AND_VALUE).asBoolean()) {
+        if (!this.handle.hasPermission(NodeMapType.ENDURING, NodeFactory.buildGroupNode(group.toLowerCase()).build(), NodeEqualityPredicate.IGNORE_EXPIRY_TIME_AND_VALUE).asBoolean()) {
             return DataMutateResult.FAIL;
         }
 
@@ -90,18 +90,6 @@ public class ApiUser extends ApiPermissionHolder implements me.lucko.luckperms.a
     @Override
     public @NonNull UserData getCachedData() {
         return this.handle.getCachedData();
-    }
-
-    @Override
-    @Deprecated
-    public void refreshPermissions() {
-
-    }
-
-    @Override
-    @Deprecated
-    public void setupDataCache() {
-
     }
 
     @Override

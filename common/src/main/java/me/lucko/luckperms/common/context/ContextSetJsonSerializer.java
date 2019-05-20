@@ -33,6 +33,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import me.lucko.luckperms.api.context.ContextSet;
+import me.lucko.luckperms.api.context.ImmutableContextSet;
 import me.lucko.luckperms.api.context.MutableContextSet;
 
 import java.util.ArrayList;
@@ -69,12 +70,12 @@ public final class ContextSetJsonSerializer {
     public static ContextSet deserializeContextSet(Gson gson, String json) {
         Objects.requireNonNull(json, "json");
         if (json.equals("{}")) {
-            return ContextSet.empty();
+            return ImmutableContextSet.empty();
         }
 
         JsonObject context = gson.fromJson(json, JsonObject.class);
         if (context == null) {
-            return ContextSet.empty();
+            return ImmutableContextSet.empty();
         }
 
         return deserializeContextSet(context);
@@ -85,7 +86,7 @@ public final class ContextSetJsonSerializer {
         JsonObject data = element.getAsJsonObject();
 
         if (data.entrySet().isEmpty()) {
-            return ContextSet.empty();
+            return ImmutableContextSet.empty();
         }
 
         MutableContextSet map = MutableContextSet.create();

@@ -88,10 +88,10 @@ public class ParentAddTemp extends SharedSubCommand {
             return CommandResult.STATE_ERROR;
         }
 
-        TemporaryDataMutateResult ret = holder.setPermission(NodeFactory.buildGroupNode(group.getName()).setExpiry(duration).withExtraContext(context).build(), modifier);
+        TemporaryDataMutateResult ret = holder.setPermission(NodeFactory.buildGroupNode(group.getName()).expiry(duration).withContext(context).build(), modifier);
 
         if (ret.getResult().asBoolean()) {
-            duration = ret.getMergedNode().getExpiryUnixTime();
+            duration = ret.getMergedNode().getExpiry().getEpochSecond();
             Message.SET_TEMP_INHERIT_SUCCESS.send(sender, holder.getFormattedDisplayName(), group.getFormattedDisplayName(), DurationFormatter.LONG.formatDateDiff(duration), MessageUtils.contextSetToString(plugin.getLocaleManager(), context));
 
             ExtendedLogEntry.build().actor(sender).acted(holder)

@@ -26,6 +26,7 @@
 package me.lucko.luckperms.common.commands.generic.parent;
 
 import me.lucko.luckperms.api.context.MutableContextSet;
+import me.lucko.luckperms.api.node.types.InheritanceNode;
 import me.lucko.luckperms.common.actionlog.ExtendedLogEntry;
 import me.lucko.luckperms.common.command.CommandResult;
 import me.lucko.luckperms.common.command.abstraction.CommandException;
@@ -91,9 +92,9 @@ public class ParentClearTrack extends SharedSubCommand {
         }
 
         if (context.isEmpty()) {
-            holder.removeIf(node -> node.isGroupNode() && track.containsGroup(node.getGroupName()));
+            holder.removeIfEnduring(node -> node instanceof InheritanceNode && track.containsGroup(((InheritanceNode) node).getGroupName()));
         } else {
-            holder.removeIf(node -> node.isGroupNode() && node.getFullContexts().equals(context) && track.containsGroup(node.getGroupName()));
+            holder.removeIfEnduring(node -> node instanceof InheritanceNode && node.getContexts().equals(context) && track.containsGroup(((InheritanceNode) node).getGroupName()));
         }
 
         if (holder.getType() == HolderType.USER) {

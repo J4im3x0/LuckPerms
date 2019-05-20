@@ -29,9 +29,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import me.lucko.luckperms.api.Tristate;
-import me.lucko.luckperms.api.nodetype.types.RegexType;
+import me.lucko.luckperms.api.node.Node;
+import me.lucko.luckperms.api.node.types.RegexPermissionNode;
 import me.lucko.luckperms.common.calculator.result.TristateResult;
-import me.lucko.luckperms.common.node.model.NodeTypes;
+import me.lucko.luckperms.common.node.factory.NodeTypes;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,12 +58,12 @@ public class RegexProcessor extends AbstractPermissionProcessor implements Permi
     public void refresh() {
         ImmutableList.Builder<Map.Entry<Pattern, TristateResult>> builder = ImmutableList.builder();
         for (Map.Entry<String, Boolean> e : this.sourceMap.entrySet()) {
-            RegexType regexType = NodeTypes.parseRegexType(e.getKey());
-            if (regexType == null) {
+            Node builtNode = NodeTypes.newBuilder(e.getKey()).build();
+            if (!(builtNode instanceof RegexPermissionNode)) {
                 continue;
             }
 
-            Pattern pattern = regexType.getPattern().orElse(null);
+            Pattern pattern = ((RegexPermissionNode) builtNode).getPattern().orElse(null);
             if (pattern == null) {
                 continue;
             }
